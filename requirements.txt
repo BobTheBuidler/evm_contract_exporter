@@ -1,2 +1,2 @@
-generic_exporters>=0.0.1,<0.1
+generic_exporters>=0.0.2,<0.1
 ypricemagic>=3.2.1,<4
