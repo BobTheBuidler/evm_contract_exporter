@@ -2,7 +2,7 @@
 import asyncio
 import logging
 from datetime import datetime, timedelta, timezone
-from decimal import Decimal
+from functools import cached_property
 from typing import List, Optional, Union
 
 import a_sync
@@ -24,7 +24,6 @@ logger = logging.getLogger(__name__)
 class ContractMetricExporter(TimeSeriesExporter):
     datastore: GenericContractTimeSeriesKeyValueStore
     """A base class to adapt generic_exporter's TimeSeriesExporterBase for evm analysis needs. Inherit from this class to create your bespoke metric exporters."""
-    _semaphore_value = 1
     def __init__(
         self,
         chainid: int,
@@ -33,6 +32,7 @@ class ContractMetricExporter(TimeSeriesExporter):
         interval: timedelta = timedelta(days=1), 
         buffer: timedelta = timedelta(minutes=5),
         datastore: Optional["GenericContractTimeSeriesKeyValueStore"] = None,
+        semaphore_value: Optional[int] = None,
         sync: bool = True,
     ) -> None:
         datastore = datastore or GenericContractTimeSeriesKeyValueStore(chainid)
@@ -41,15 +41,48 @@ class ContractMetricExporter(TimeSeriesExporter):
         query = timeseries[self.start_timestamp(sync=False):None:interval]
         super().__init__(query, datastore, buffer=buffer, sync=sync)
         self.chainid = chainid
-        self.semaphore = a_sync.Semaphore(self._semaphore_value, name=self.query)
+        self._semaphore_value = semaphore_value
     
     def __repr__(self) -> str:
         return f"<{self.__class__.__name__} for {self.query}>"
+    
+    @cached_property
+    def semaphore(self) -> Optional[a_sync.PrioritySemaphore]:
+        if self._semaphore_value:
+            return a_sync.PrioritySemaphore(self._semaphore_value, name=self.__class__.__name__)
+        return None
     
     async def data_exists(self, ts: datetime) -> List[bool]:
         return await asyncio.gather(*[self.datastore.data_exists(field.address, field.key, ts) for field in self.query.metrics])
 
     async def ensure_data(self, ts: datetime) -> None:
+        if self.semaphore:
+            async with self.semaphore[ts]:
+                await self._ensure_data(ts)
+        else:
+            await self._ensure_data(ts)
+
+    @eth_retry.auto_retry
+    async def start_timestamp(self) -> datetime:
+        earliest_deploy_block = min(await asyncio.gather(*[utils.get_deploy_block(field.address) for field in self.query.metrics]))
+        deploy_timestamp = datetime.fromtimestamp(await get_block_timestamp_async(earliest_deploy_block), tz=timezone.utc)
+        iseconds = self.query.interval.total_seconds()
+        rounded_down = datetime.fromtimestamp(deploy_timestamp.timestamp() // iseconds * iseconds, tz=timezone.utc)
+        start_timestamp = rounded_down + self.query.interval
+        logger.debug("rounded %s to %s (interval %s)", deploy_timestamp, start_timestamp, self.query.interval)
+        return start_timestamp
+    
+    async def produce(self, timestamp: datetime) -> TimeDataRow:
+        # NOTE: we fetch this before we enter the semaphore to ensure its cached in memory when we need to use it and we dont block unnecessarily
+        block = await utils.get_block_at_timestamp(timestamp)
+        async with self.semaphore:
+            logger.debug("%s producing %s block %s", self, timestamp, block)
+            # NOTE: only works with one field for now
+            retval = await self.query[timestamp]
+            logger.debug("%s produced %s at %s block %s", self, retval, timestamp, block)
+            return retval
+
+    async def _ensure_data(self, ts: datetime) -> None:
         exists = await self.data_exists(ts, sync=False)
         if all(exists):
             logger.debug('complete data for %s at %s already exists in datastore', self, ts)
@@ -74,23 +107,3 @@ class ContractMetricExporter(TimeSeriesExporter):
                     return_exceptions=True,
                 )
             )
-
-    @eth_retry.auto_retry
-    async def start_timestamp(self) -> datetime:
-        earliest_deploy_block = min(await asyncio.gather(*[utils.get_deploy_block(field.address) for field in self.query.metrics]))
-        deploy_timestamp = datetime.fromtimestamp(await get_block_timestamp_async(earliest_deploy_block), tz=timezone.utc)
-        iseconds = self.query.interval.total_seconds()
-        rounded_down = datetime.fromtimestamp(deploy_timestamp.timestamp() // iseconds * iseconds, tz=timezone.utc)
-        start_timestamp = rounded_down + self.query.interval
-        logger.debug("rounded %s to %s (interval %s)", deploy_timestamp, start_timestamp, self.query.interval)
-        return start_timestamp
-    
-    async def produce(self, timestamp: datetime) -> TimeDataRow:
-        # NOTE: we fetch this before we enter the semaphore to ensure its cached in memory when we need to use it and we dont block unnecessarily
-        block = await utils.get_block_at_timestamp(timestamp)
-        async with self.semaphore:
-            logger.debug("%s producing %s block %s", self, timestamp, block)
-            # NOTE: only works with one field for now
-            retval = await self.query[timestamp]
-            logger.debug("%s produced %s at %s block %s", self, retval, timestamp, block)
-            return retval

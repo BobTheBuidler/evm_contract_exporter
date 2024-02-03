@@ -1,7 +1,7 @@
 
 import logging
-from datetime import datetime, timedelta
-from typing import List, Union
+from datetime import timedelta
+from typing import List, Optional, Union
 
 from brownie import chain
 from brownie.network.contract import _ContractMethod
@@ -22,7 +22,6 @@ Scaley = Union[bool, int, Scale]
 
 class ViewMethodExporter(ContractMetricExporter):
     """Used to export `ContractCall` and `ContractTx` methods on a eth-brownie `Contract`"""
-    _semaphore_value = 500_000 # effectively doesnt exist at this level # TODO: dev something so we can make this None
     def __init__(
         self, 
         *methods: Method,
@@ -30,10 +29,11 @@ class ViewMethodExporter(ContractMetricExporter):
         buffer: timedelta = timedelta(minutes=5), 
         scale: Scaley = False, 
         datastore: TimeSeriesDataStoreBase = None,
+        semaphore_value: Optional[int] = None,
         sync: bool = True,
     ) -> None:
         _validate_scale(scale)
-        super().__init__(chain.id, _wrap_methods(methods, scale), interval=interval, datastore=datastore, buffer=buffer, sync=sync)
+        super().__init__(chain.id, _wrap_methods(methods, scale), interval=interval, buffer=buffer, datastore=datastore, semaphore_value=semaphore_value, sync=sync)
 
 def _validate_scale(scale: Scaley) -> None:
     if isinstance(scale, bool):
