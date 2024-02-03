@@ -278,7 +278,7 @@ class StructDerivedMetric(ContractCallDerivedMetric):
         return self._abi
     @cached_property
     def key(self) -> str:
-        return inflection.underscore(self._call._name.split('.')[1]) + f".{self._struct_key}"
+        return inflection.underscore(self._call._name.split('.')[1]) + f".{inflection.underscore(self._struct_key)}"
     def _extract(self, response_data: ReturnValue) -> Any:
         try:
             return response_data.dict()[self._struct_key]
