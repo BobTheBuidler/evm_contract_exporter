@@ -36,6 +36,7 @@ EXPORTABLE_TYPES = {
     "int112": int112,
     "int128": int128,
     "int192": int192,
+    "int224": int224,
     "int256": int256,
     "uint8": uint8,
     "uint16": uint16,
@@ -48,6 +49,7 @@ EXPORTABLE_TYPES = {
     "uint112": uint112,
     "uint128": uint128,
     "uint192": uint192,
+    "uint224": uint224,
     "uint256": uint256,
 }
 
