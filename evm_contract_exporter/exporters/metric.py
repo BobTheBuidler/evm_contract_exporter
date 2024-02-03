@@ -50,18 +50,12 @@ class ContractMetricExporter(TimeSeriesExporter):
     def __repr__(self) -> str:
         return f"<{self.__class__.__name__} for {self.query}>"
     
-    @cached_property
-    def semaphore(self) -> Optional[a_sync.PrioritySemaphore]:
-        if self._semaphore_value:
-            return a_sync.PrioritySemaphore(self._semaphore_value, name=self.__class__.__name__)
-        return None
-    
     async def data_exists(self, ts: datetime) -> List[bool]:
         return await asyncio.gather(*[self.datastore.data_exists(field.address, field.key, ts) for field in self.query.metrics])
 
     async def ensure_data(self, ts: datetime) -> None:
-        if self.semaphore:
-            async with self.semaphore[ts.timestamp()]:
+        if semaphore := self._semaphore:
+            async with semaphore[ts.timestamp()]:
                 await self._ensure_data(ts)
         else:
             await self._ensure_data(ts)
@@ -86,6 +80,12 @@ class ContractMetricExporter(TimeSeriesExporter):
             logger.debug("%s produced %s at %s block %s", self, retval, timestamp, block)
             return retval
 
+    @cached_property
+    def _semaphore(self) -> Optional[a_sync.PrioritySemaphore]:
+        if self._semaphore_value:
+            return a_sync.PrioritySemaphore(self._semaphore_value, name=self.__class__.__name__)
+        return None
+    
     async def _ensure_data(self, ts: datetime) -> None:
         exists = await self.data_exists(ts, sync=False)
         if all(exists):
