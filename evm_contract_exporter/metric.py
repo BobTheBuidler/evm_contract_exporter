@@ -168,7 +168,10 @@ class ContractCallMetric(ContractCall, _ContractCallMetricBase):
             except _exceptions.FixMe:
                 raise _exceptions.FixMe("cannot export tuple type", self._outputs)
         if self._returns_tuple_type or self._returns_struct_type:
-            return tuple(types.lookup(self._outputs[i]["type"]) for i in range(len(self._outputs)))
+            try:
+                return tuple(types.lookup(self._outputs[i]["type"]) for i in range(len(self._outputs)))
+            except _exceptions.FixMe:
+                raise _exceptions.FixMe("cannot export tuple type struct or tuple member", self._outputs)
         raise NotImplementedError(self, self._outputs)
     @cached_property
     def _should_wrap_output(self) -> bool:
