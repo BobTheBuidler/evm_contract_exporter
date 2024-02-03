@@ -206,14 +206,33 @@ class ContractCallDerivedMetric(_ContractCallMetricBase):
     def address(self) -> types.address:
         return self._call.address
     @property
+    def _output_type(self) -> Type:
+        try:
+            return types.lookup(self.abi['type'])
+        except _exceptions.FixMe:
+            raise _exceptions.FixMe(f'cannot export {self.__class__.__name__} with tuple return type', self.abi)
+    @property
     def _scale(self) -> Union[bool, int, scale.Scale]:
         return self._call._scale
+    @abstractproperty
+    def abi(self) -> dict:...
     @abstractmethod
-    def _extract(self, response_data) -> Any:
-        ...
+    def _extract(self, response_data) -> Any:...
 
 
 class TupleDerivedMetric(ContractCallDerivedMetric):
+    """
+    A `Metric` derived from a `ContractCallMetric` with a tuple response type. You should not init these manually.
+    Usage Example:
+    ```
+    contract = Contract('0x123...')
+    methodWithTupleResponse = ContractCallMetric(contract.methodWithTupleResponse)
+    derived = methodWithTupleResponse[0]
+    
+    >>> isinstance(derived, TupleDerivedMetric)
+    True
+    ```
+    """
     def __init__(self, call: ContractCallMetric, index: int) -> None:
         super().__init__(call)
         self._index = index
@@ -227,22 +246,34 @@ class TupleDerivedMetric(ContractCallDerivedMetric):
             value /= await self.get_scale()
         return value
     @property
-    def _output_type(self) -> Type:
-        return types.lookup(self._call._outputs[self._index]['type'])
+    def abi(self) -> dict:
+        return self._call._outputs[self._index]
     def _extract(self, response_data: ReturnValue) -> Any:
         return response_data[self._index]
 
 
 class StructDerivedMetric(ContractCallDerivedMetric):
+    """
+    A `Metric` derived from a `ContractCallMetric` with a struct response type. You should not init these manually.
+    Usage Example:
+    ```
+    contract = Contract('0x123...')
+    methodWithStructResponse = ContractCallMetric(contract.methodWithStructResponse)
+    derived = methodWithStructResponse[struct_key]
+    
+    >>> isinstance(derived, StructDerivedMetric)
+    True
+    ```
+    """
     def __init__(self, call: ContractCallMetric, abi: dict) -> None:
         super().__init__(call)
         self._abi = abi
         self._struct_key = self._abi['name']
+    @property
+    def abi(self) -> dict:
+        return self._abi
     @cached_property
     def key(self) -> str:
         return inflection.underscore(self._call._name.split('.')[1]) + f".{self._struct_key}"
-    @property
-    def _output_type(self) -> Type:
-        return types.lookup(self._abi['type'])
     def _extract(self, response_data: ReturnValue) -> Any:
         return response_data.dict()[self._struct_key]
