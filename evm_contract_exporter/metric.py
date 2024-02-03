@@ -280,4 +280,7 @@ class StructDerivedMetric(ContractCallDerivedMetric):
     def key(self) -> str:
         return inflection.underscore(self._call._name.split('.')[1]) + f".{self._struct_key}"
     def _extract(self, response_data: ReturnValue) -> Any:
-        return response_data.dict()[self._struct_key]
+        try:
+            return response_data.dict()[self._struct_key]
+        except KeyError as e:
+            raise KeyError(str(e), response_data.dict()) from e
