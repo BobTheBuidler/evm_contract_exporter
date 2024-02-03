@@ -57,7 +57,7 @@ class ContractMetricExporter(TimeSeriesExporter):
 
     async def ensure_data(self, ts: datetime) -> None:
         if self.semaphore:
-            async with self.semaphore[ts]:
+            async with self.semaphore[ts.timestamp()]:
                 await self._ensure_data(ts)
         else:
             await self._ensure_data(ts)
