@@ -89,13 +89,17 @@ def _list_functions(contract: Contract) -> List[ContractCall]:
     for item in contract.abi:
         if item["type"] != "function":
             continue
-        if fn := getattr(contract, item["name"]):
+        attr = item["name"]
+        if attr == "_name":
+            # this conflicts with brownie's `_name` attribute, `getattr(contract, '_name')` will not return a callable
+            continue
+        if fn := getattr(contract, attr):
             if isinstance(fn, OverloadedMethod):
                 fns.extend(_expand_overloaded(fn))
             elif isinstance(fn, (ContractCall, ContractTx)):
                 fns.append(fn)
             else:
-                raise TypeError(fn, item)
+                raise TypeError(attr, fn, item)
     return fns
 
 def _is_view_method(function: ContractCall) -> bool:
@@ -135,6 +139,7 @@ SKIP_METHODS = {
     "currentCumulativePrices",
     "reserve0CumulativeLast",
     "reserve1CumulativeLast",
+    "lastObservation",
 }
 
 def _exportable_return_value_type(function: ContractCall) -> bool:
