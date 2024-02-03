@@ -164,9 +164,9 @@ def _exportable_return_value_type(function: ContractCall) -> bool:
     elif len(outputs) > 1:
         if all(o["type"] in UNEXPORTABLE_TYPES for o in outputs):
             return False
-        elif is_tuple_type(outputs) and all(o["type"] in EXPORTABLE_TYPES for o in outputs):
+        elif is_tuple_type(outputs): # NOTE lets see if this works --- and all(o["type"] in EXPORTABLE_TYPES for o in outputs):
             return True
-        elif is_struct_type(outputs) and all(o["type"] in EXPORTABLE_TYPES for o in outputs):
+        elif is_struct_type(outputs): # NOTE lets see if this works --- and all(o["type"] in EXPORTABLE_TYPES for o in outputs):
             #logger.info("TODO: support multi-return value methods with named return values")
             return True
     logger.info("cant export %s with outputs %s", function, outputs)
