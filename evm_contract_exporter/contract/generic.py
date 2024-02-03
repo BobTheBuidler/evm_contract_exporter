@@ -125,6 +125,9 @@ SKIP_METHODS = {
     "decimals",
     "eip712Domain",
     "metadata",
+    # these numbers are too big to stuff into the default db. You can manually do things with these if you need
+    "price0CumulativeLast",
+    "price1CumulativeLast",
 }
 
 def _exportable_return_value_type(function: ContractCall) -> bool:
