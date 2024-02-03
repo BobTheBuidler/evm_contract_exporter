@@ -95,7 +95,7 @@ def _list_functions(contract: Contract) -> List[ContractCall]:
             elif isinstance(fn, (ContractCall, ContractTx)):
                 fns.append(fn)
             else:
-                raise TypeError(fn)
+                raise TypeError(fn, item)
     return fns
 
 def _is_view_method(function: ContractCall) -> bool:
