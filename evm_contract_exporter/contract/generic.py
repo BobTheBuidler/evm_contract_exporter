@@ -8,9 +8,8 @@ from typing import List, Optional
 
 from async_property import async_cached_property
 from brownie import chain, convert
-from brownie.exceptions import ContractNotFound
 from brownie.network.contract import ContractCall, ContractTx, OverloadedMethod
-from y import Contract, ContractNotVerified
+from y import Contract
 from y.datatypes import Address
 
 from evm_contract_exporter.contract import ContractExporterBase
@@ -63,17 +62,6 @@ class GenericContractExporter(ContractExporterBase):
                 data.append(timeseries)
         if data:
             return ViewMethodExporter(*data, interval=self.interval, buffer=self.buffer, datastore=self.datastore, sync=self.sync)
-    async def _await(self) -> None:
-        try:
-            if method_exporter := await self.method_exporter:
-                await method_exporter
-        except ContractNotFound:
-            logger.error("%s is not a contract, skipping", self)
-        except ContractNotVerified:
-            logger.error("%s is not verified, skipping", self)
-        except Exception as e:
-            logger.exception("%s %s for %s, skipping", e.__class__.__name__, e, self)
-    
     @classmethod
     def create_export_task(
         cls, 
@@ -83,6 +71,9 @@ class GenericContractExporter(ContractExporterBase):
         buffer: timedelta = timedelta(minutes=5),
     ) -> asyncio.Task:
         return cls(contract, interval=interval, buffer=buffer).task
+    async def _await(self) -> None:
+        if method_exporter := await self.method_exporter:
+            await method_exporter
 
 def _list_functions(contract: Contract) -> List[ContractCall]:
     fns = []
