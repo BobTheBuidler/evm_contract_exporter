@@ -15,9 +15,6 @@ from evm_contract_exporter.exporters.metric import ContractMetricExporter
 from evm_contract_exporter.metric import ContractCallDerivedMetric, ContractCallMetric
 from evm_contract_exporter.scale import Scale
 
-
-REVERT = -1
-
 logger = logging.getLogger(__name__)
 
 Method = Union[_ContractMethod, ContractCallMetric, ContractCallDerivedMetric]
@@ -37,15 +34,6 @@ class ViewMethodExporter(ContractMetricExporter):
     ) -> None:
         _validate_scale(scale)
         super().__init__(chain.id, _wrap_methods(methods, scale), interval=interval, datastore=datastore, buffer=buffer, sync=sync)
-    
-    async def ensure_data(self, ts: datetime) -> None:
-        try:
-            await super().ensure_data(ts, sync=False)
-        except Exception as e:
-            if not _exceptions._is_revert(e):
-                raise e
-            logger.debug("%s reverted with %s %s", self, e.__class__.__name__, e)
-            await self.datastore.push(self.metric.key, ts, REVERT, self)
 
 def _validate_scale(scale: Scaley) -> None:
     if isinstance(scale, bool):

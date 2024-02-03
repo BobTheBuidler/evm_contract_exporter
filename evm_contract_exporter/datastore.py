@@ -6,7 +6,7 @@ from collections import defaultdict
 from datetime import datetime
 from dateutil import parser
 from decimal import Decimal, InvalidOperation
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Union
 
 import a_sync
 from async_lru import alru_cache
@@ -16,7 +16,7 @@ from pony.orm import TransactionIntegrityError, select
 from y import ERC20, Network, NonStandardERC20
 from y.prices.dex.uniswap.v2 import UniswapV2Pool
 
-from evm_contract_exporter import db, types
+from evm_contract_exporter import _exceptions, db, types
 from evm_contract_exporter._exceptions import FixMe
 from evm_contract_exporter.utils import get_block_at_timestamp
 
@@ -42,11 +42,15 @@ class GenericContractTimeSeriesKeyValueStore(TimeSeriesDataStoreBase):
         logger.debug('%s %s %s %s does not exist', self.chainid, address, key, ts)
         return False
     
-    async def push(self, address: types.address, key: Any, ts: datetime, value: Decimal, metric: Optional[Metric] = None) -> None:
+    async def push(self, address: types.address, key: Any, ts: datetime, value: Union[Decimal, Exception], metric: Optional[Metric] = None) -> None:
         """Exports `data` to Victoria Metrics using `key` somehow. lol"""
         block = await get_block_at_timestamp(ts)
+        if isinstance(value, Exception):
+            if not _exceptions._is_revert(value):
+                raise value
+            logger.debug("%s %s at %s (block %s) reverted with %s %s", address, key, ts, block, value.__class__.__name__, value)
+            value = db.Error.REVERT
         try:
-            #await db.write_threads.run(self.__push, key, ts, block, value)
             await db.write_threads.run(
                 db.session(db.ContractDataTimeSeriesKV), 
                 address=(self.chainid, address), 
