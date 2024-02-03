@@ -40,7 +40,11 @@ class ContractMetricExporter(TimeSeriesExporter):
             raise ValueError("all metrics must share an address")
         query = timeseries[self.start_timestamp(sync=False):None:interval]
         super().__init__(query, datastore, buffer=buffer, sync=sync)
+        if not isinstance(chainid, int):
+            raise TypeError(f"`chainid` must be an integer. You passed {semaphore_value}")
         self.chainid = chainid
+        if semaphore_value is not None and not isinstance(semaphore_value, int):
+            raise TypeError(f"`semaphore_value` must be int or None. You passed {semaphore_value}")
         self._semaphore_value = semaphore_value
     
     def __repr__(self) -> str:
