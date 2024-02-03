@@ -21,8 +21,8 @@ logger = logging.getLogger(__name__)
 
 class GenericContractExporter(ContractExporterBase):
     """
-    This exporter will export a full history of all of the contract's view methods which return a single numeric result.
-    It will also export historical price data.
+    This exporter will export a full history of all of the contract's view methods which return a single numeric result, along with all numeric tuple/struct members.
+    # NOTE: not implemented TODO: It will also export historical price data.
     """
     def __init__(
         self, 
@@ -30,10 +30,12 @@ class GenericContractExporter(ContractExporterBase):
         *, 
         interval: timedelta = timedelta(days=1), 
         buffer: timedelta = timedelta(minutes=5),
+        semaphore_value: Optional[int] = 100,
         sync: bool = True
     ) -> None:
         super().__init__(chain.id, interval=interval, buffer=buffer, sync=sync)
         self.address = convert.to_address(contract)
+        self._semaphore_value = semaphore_value
     def __repr__(self) -> str:
         return f"<{self.__class__.__name__} contract={self.address} interval={self.interval}>"
     @cached_property
@@ -61,7 +63,15 @@ class GenericContractExporter(ContractExporterBase):
             else:
                 data.append(timeseries)
         if data:
-            return ViewMethodExporter(*data, interval=self.interval, buffer=self.buffer, datastore=self.datastore, sync=self.sync)
+            return ViewMethodExporter(
+                *data, 
+                interval=self.interval, 
+                buffer=self.buffer, 
+                datastore=self.datastore, 
+                semaphore_value=self._semaphore_value, 
+                sync=self.sync,
+            )
+        
     @classmethod
     def create_export_task(
         cls, 
