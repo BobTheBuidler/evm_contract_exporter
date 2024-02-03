@@ -91,10 +91,13 @@ def _list_functions(contract: Contract) -> List[ContractCall]:
             continue
         attr_name = item["name"]
         if attr_name == "_name":
-            # this conflicts with brownie's `Contract._name` property, `getattr(contract, '_name')` will not return a callable
+            # this conflicts with brownie's `_ContractBase._name` property, `contract._name` will not return a callable
             continue
         elif attr_name == "_owner":
-            # this conflicts with brownie's `Contract._owner` property, `getattr(contract, '_owner')` will not return a callable
+            # this conflicts with brownie's `_ContractBase._owner` property, `contract._owner` will not return a callable
+            continue
+        elif attr_name == "info":
+            # this conflicts with brownie's `_ContractBase.info` method, `contract.info` will not return a `ContractCall` object
             continue
         fn = getattr(contract, attr_name)
         if isinstance(fn, OverloadedMethod):
