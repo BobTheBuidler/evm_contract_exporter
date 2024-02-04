@@ -50,7 +50,7 @@ class GenericContractExporter(ContractExporterBase):
         for view_method in _safe_views(contract):
             timeseries = _wrap_method(view_method, True)
             if timeseries.metric._returns_tuple_type:
-                members: TupleDerivedMetric
+                member: TupleDerivedMetric
                 for member in (timeseries.metric[i] for i in range(len(timeseries.metric._outputs))):
                     if member.abi["type"] in EXPORTABLE_TYPES:
                         data.append(member)
