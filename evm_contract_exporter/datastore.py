@@ -43,6 +43,7 @@ class GenericContractTimeSeriesKeyValueStore(TimeSeriesDataStoreBase):
             block: int
             value: Decimal
             def __await__(item) -> None:
+                logger.debug("inserting %s", item)
                 # ensure daemon is running
                 self._bulk_insert_daemon_task
                 self._insert_queue.put_nowait(item)
@@ -106,10 +107,12 @@ class GenericContractTimeSeriesKeyValueStore(TimeSeriesDataStoreBase):
             bulk.insert(db.ContractDataTimeSeriesKV, self._columns, items, db=db.db)
             for item in items:
                 self._pending_inserts.pop(item).set_result(None)
+            logger.debug("bulk insert complete")
         except Exception as e:
             if len(items) == 1:
                 self._pending_inserts.pop(items[0]).set_exception(e)
                 return
+            logger.debug("%s %s when performing bulk insert of length %s", e.__class__.__name__, e, len(items))
             midpoint = len(items) // 2
             self._bulk_insert(items[:midpoint])
             self._bulk_insert(items[midpoint:])
