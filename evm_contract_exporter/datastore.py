@@ -6,14 +6,18 @@ from collections import defaultdict
 from datetime import datetime
 from dateutil import parser
 from decimal import Decimal, InvalidOperation
-from typing import Any, Dict, List, Optional, Union
+from functools import cached_property
+from typing import Any, DefaultDict, Dict, Iterator, List, NoReturn, Optional
 
 import a_sync
 from async_lru import alru_cache
 from generic_exporters import Metric
+#from generic_exporters.plan import ReturnValue
 from generic_exporters.processors.exporters.datastores.timeseries._base import TimeSeriesDataStoreBase
+from msgspec import Struct
 from pony.orm import TransactionIntegrityError, select
 from y import ERC20, Network, NonStandardERC20
+from y._db.utils import bulk
 from y.prices.dex.uniswap.v2 import UniswapV2Pool
 
 from evm_contract_exporter import _exceptions, db, types
@@ -24,14 +28,33 @@ from evm_contract_exporter.utils import get_block_at_timestamp
 logger = logging.getLogger(__name__)
 
 class GenericContractTimeSeriesKeyValueStore(TimeSeriesDataStoreBase):
+    _columns = "address_chainid", "address_address", "metric", "timestamp", "blockno", "value"
     def __init__(self, chain_id: int) -> None:
         self.chainid = chain_id
+        self._insert_queue: a_sync.Queue["BulkInsertItem"] = a_sync.Queue()
+        self._pending_inserts: DefaultDict["BulkInsertItem", asyncio.Event] = defaultdict(lambda: asyncio.Event())
         self.__errd = False  # we flip this true for token/method combos that have err issues. TODO: debug this
+
+        class BulkInsertItem(Struct):
+            address: types.address
+            metric: Any
+            timestamp: datetime
+            block: int
+            value: Decimal
+            def __await__(item_self) -> None:
+                # ensure daemon is running
+                self._bulk_insert_daemon_task
+                self._insert_queue.put_nowait(item_self)
+                return self._pending_inserts[item_self].__await__()
+            def __iter__(item_self) -> Iterator[int, types.address, Any, datetime, int, Decimal]:
+                """Make this class compatible with the `bulk.insert` interface from ypricemagic"""
+                yield self.chainid
+                yield from item_self.__struct_fields__
+        
+        self.BulkInsertItem = BulkInsertItem
     
     def __repr__(self) -> str:
         return f"<{self.__class__.__name__} chainid={self.chainid}>"
-    
-    
     
     async def data_exists(self, address: types.address, key: str, ts: datetime) -> bool:
         """Returns True if `key` returns results from your Postgres db at `ts`, False if not."""
@@ -42,7 +65,7 @@ class GenericContractTimeSeriesKeyValueStore(TimeSeriesDataStoreBase):
         logger.debug('%s %s %s %s does not exist', self.chainid, address, key, ts)
         return False
     
-    async def push(self, address: types.address, key: Any, ts: datetime, value: Union[Decimal, Exception], metric: Optional[Metric] = None) -> None:
+    async def push(self, address: types.address, key: Any, ts: datetime, value: "ReturnValue", metric: Optional[Metric] = None) -> None:
         """Exports `data` to Victoria Metrics using `key` somehow. lol"""
         block = await get_block_at_timestamp(ts)
         if isinstance(value, Exception):
@@ -51,14 +74,7 @@ class GenericContractTimeSeriesKeyValueStore(TimeSeriesDataStoreBase):
             logger.debug("%s %s at %s (block %s) reverted with %s %s", address, key, ts, block, value.__class__.__name__, value)
             value = db.Error.REVERT
         try:
-            await db.write_threads.run(
-                db.session(db.ContractDataTimeSeriesKV), 
-                address=(self.chainid, address), 
-                metric=key, 
-                timestamp=ts, 
-                blockno=block, 
-                value=value,
-            )
+            await self.BulkInsertItem(address, key, ts, block, value)
             logger.debug('exported {"key": %s, "ts": %s, "block": %s, "value": %s}', key, ts, block, value)
         except InvalidOperation as e:
             if not self.__errd:
@@ -71,6 +87,29 @@ class GenericContractTimeSeriesKeyValueStore(TimeSeriesDataStoreBase):
             if not any(err in (msg:=str(e)) for err in constraint_errs):
                 raise e
             logger.debug("%s for %s %s %s", e.__class__.__name__, self, key, ts)
+    
+    @cached_property
+    def _bulk_insert_daemon_task(self) -> "asyncio.Task[NoReturn]":
+        return asyncio.create_task(self._bulk_insert_daemon())
+            
+    async def _bulk_insert_daemon(self) -> NoReturn:
+        items: List[self.BulkInsertItem]
+        while True:
+            items = await self._insert_queue.get(-1)
+            await db.write_threads.run(self._bulk_insert, items)
+    
+    def _bulk_insert(self, items: List["self.BulkInsertItem"]) -> None:
+        try:
+            bulk.insert(db.ContractDataTimeSeriesKV, self._columns, items)
+            for item in items:
+                self._pending_inserts.pop(item).set()
+        except InvalidOperation as e:
+            if len(items) == 1:
+                logger.exception(e)
+                return
+            midpoint = len(items) // 2
+            self._bulk_insert(items[:midpoint])
+            self._bulk_insert(items[midpoint:])
 
 
 @alru_cache(maxsize=None, ttl=300)
