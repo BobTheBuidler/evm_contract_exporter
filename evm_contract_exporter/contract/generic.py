@@ -54,7 +54,7 @@ class GenericContractExporter(ContractExporterBase):
                 for member in (timeseries.metric[i] for i in range(len(timeseries.metric._outputs))):
                     if member.abi["type"] in EXPORTABLE_TYPES:
                         data.append(member)
-                    else:
+                    elif abi["type"] not in UNEXPORTABLE_TYPES:
                         logger.info('unable to export tuple member %s', member)
             elif timeseries.metric._returns_struct_type:
                 outputs = timeseries.metric._outputs
@@ -66,7 +66,7 @@ class GenericContractExporter(ContractExporterBase):
                     derived_metric = timeseries.metric[struct_key]
                     if abi["type"] in EXPORTABLE_TYPES:
                         data.append(derived_metric)
-                    else:
+                    elif abi["type"] not in UNEXPORTABLE_TYPES:
                         logger.info('unable to export struct member %s', derived_metric)
             else:
                 data.append(timeseries)
