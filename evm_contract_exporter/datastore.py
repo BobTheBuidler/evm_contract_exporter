@@ -52,6 +52,22 @@ class GenericContractTimeSeriesKeyValueStore(TimeSeriesDataStoreBase):
                 """Make this class compatible with the `bulk.insert` interface from ypricemagic"""
                 yield self.chainid
                 yield from item.__struct_fields__
+            @classmethod
+            @retry_locked
+            def bulk_insert(cls, items: List["self.BulkInsertItem"]) -> None:
+                try:
+                    bulk.insert(db.ContractDataTimeSeriesKV, self._columns, items, db=db.db)
+                    for item in items:
+                        self._pending_inserts.pop(item).set_result(None)
+                    logger.debug("bulk insert complete")
+                except Exception as e:
+                    if len(items) == 1:
+                        self._pending_inserts.pop(items[0]).set_exception(e)
+                        return
+                    logger.debug("%s %s when performing bulk insert of length %s", e.__class__.__name__, e, len(items))
+                    midpoint = len(items) // 2
+                    cls.bulk_insert(items[:midpoint])
+                    cls.bulk_insert(items[midpoint:])
         
         self.BulkInsertItem = BulkInsertItem
     
@@ -85,37 +101,15 @@ class GenericContractTimeSeriesKeyValueStore(TimeSeriesDataStoreBase):
                 logger.info("bob will fix this before pushing the lib to prod")
                 self.__errd = True
                 raise FixMe(e) from None
-        except TransactionIntegrityError as e:
-            constraint_errs = "UNIQUE constraint failed", "duplicate key value violates unique constraint"
-            if not any(err in (msg:=str(e)) for err in constraint_errs):
-                raise e
-            logger.debug("%s for %s %s", e.__class__.__name__, self, item)
     
     @cached_property
     def _bulk_insert_daemon_task(self) -> "asyncio.Task[NoReturn]":
         return asyncio.create_task(self._bulk_insert_daemon())
             
     async def _bulk_insert_daemon(self) -> NoReturn:
-        items: List[self.BulkInsertItem]
         while True:
-            items = await self._insert_queue.get(-1)
-            await db.write_threads.run(self._bulk_insert, items)
-    
-    @retry_locked
-    def _bulk_insert(self, items: List["self.BulkInsertItem"]) -> None:
-        try:
-            bulk.insert(db.ContractDataTimeSeriesKV, self._columns, items, db=db.db)
-            for item in items:
-                self._pending_inserts.pop(item).set_result(None)
-            logger.debug("bulk insert complete")
-        except Exception as e:
-            if len(items) == 1:
-                self._pending_inserts.pop(items[0]).set_exception(e)
-                return
-            logger.debug("%s %s when performing bulk insert of length %s", e.__class__.__name__, e, len(items))
-            midpoint = len(items) // 2
-            self._bulk_insert(items[:midpoint])
-            self._bulk_insert(items[midpoint:])
+            items: List[self.BulkInsertItem] = await self._insert_queue.get(-1)
+            await db.write_threads.run(self.BulkInsertItem.bulk_insert, items)
 
 
 @alru_cache(maxsize=None, ttl=300)
