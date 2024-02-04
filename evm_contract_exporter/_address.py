@@ -1,11 +1,9 @@
 
-from typing import Union
-
 from brownie import convert
 from generic_exporters import Metric, TimeSeries
 
 from evm_contract_exporter import types
-from evm_contract_exporter.metric import ContractCallMetric, StructDerivedMetric, TupleDerivedMetric
+from evm_contract_exporter.metric import AnyContractCallMetric
 from evm_contract_exporter.scale import Scale
 
 # NOTE: is this needed? 
@@ -22,8 +20,6 @@ class _AddressKeyedTimeSeries(TimeSeries):
     @property
     def address(self) -> types.address:
         return self.metric.address
-
-AnyContractCallMetric = Union[ContractCallMetric, StructDerivedMetric, TupleDerivedMetric]
 
 class ContractCallTimeSeries(_AddressKeyedTimeSeries):
     metric: AnyContractCallMetric

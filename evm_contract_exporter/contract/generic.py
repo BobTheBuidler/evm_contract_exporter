@@ -14,6 +14,7 @@ from y.datatypes import Address
 
 from evm_contract_exporter.contract import ContractExporterBase
 from evm_contract_exporter.exporters.method import ViewMethodExporter
+from evm_contract_exporter.metric import TupleDerivedMetric
 from evm_contract_exporter.types import EXPORTABLE_TYPES, UNEXPORTABLE_TYPES, address
 
 
@@ -49,8 +50,12 @@ class GenericContractExporter(ContractExporterBase):
         for view_method in _safe_views(contract):
             timeseries = _wrap_method(view_method, True)
             if timeseries.metric._returns_tuple_type:
-                derived_metrics = [timeseries.metric[i] for i in range(len(timeseries.metric._outputs))]
-                data.extend(derived_metrics)
+                members: TupleDerivedMetric
+                for member in (timeseries.metric[i] for i in range(len(timeseries.metric._outputs))):
+                    if member.abi["type"] in EXPORTABLE_TYPES:
+                        data.append(member)
+                    else:
+                        logger.info('unable to export tuple member %s', member)
             elif timeseries.metric._returns_struct_type:
                 outputs = timeseries.metric._outputs
                 if len(outputs) == 1:
@@ -59,7 +64,10 @@ class GenericContractExporter(ContractExporterBase):
                 for abi in outputs:
                     struct_key = abi['name']
                     derived_metric = timeseries.metric[struct_key]
-                    data.append(derived_metric)
+                    if abi["type"] in EXPORTABLE_TYPES:
+                        data.append(derived_metric)
+                    else:
+                        logger.info('unable to export struct member %s', derived_metric)
             else:
                 data.append(timeseries)
         if data:
