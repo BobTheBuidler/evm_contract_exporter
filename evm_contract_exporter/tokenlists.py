@@ -23,7 +23,7 @@ try:
                 except KeyError:
                     pass
             raise KeyError(token_symbol)
-        def available_tokenlists(self) -> List[str]:
+        def available_tokenlists(self) -> List[tokenlists.TokenList]:
             self.__preinstall_tokenlists()
             return super().available_tokenlists()
         def get_tokens_for_chain(self, name: str, chainid: Network = chain.id) -> List[tokenlists.TokenInfo]:
@@ -32,7 +32,7 @@ try:
             logger.info("contains %s tokens, %s for %s", len(tokenlist.tokens), len(tokens), Network(chain.id))
             return tokens
         def get_all_tokens_for_chain(self, chainid: Network = chain.id) -> List[tokenlists.TokenInfo]:
-            all_tokens = []
+            all_tokens: List[tokenlists.TokenInfo] = []
             for name in self.available_tokenlists():
                 for tokens in self.get_tokens_for_chain(name, chainid=chainid):
                     for token_info in tokens:
