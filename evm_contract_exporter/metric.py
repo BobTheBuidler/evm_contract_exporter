@@ -3,7 +3,7 @@ import asyncio
 import logging
 from abc import abstractmethod, abstractproperty
 from datetime import datetime
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 from functools import cached_property
 from typing import Any, Dict, List, Optional, Tuple, Type, Union, overload
 
@@ -202,7 +202,10 @@ class ContractCallDerivedMetric(_ContractCallMetricBase):
         return self._extract(await self._call.coroutine(*args, **kwargs))
     async def produce(self, timestamp: datetime) -> Decimal:
         call_response = await self._call.produce(timestamp, sync=False)
-        value = Decimal(self._extract(call_response)) 
+        try:
+            value = Decimal(self._extract(call_response)) 
+        except InvalidOperation as e:
+            raise InvalidOperation(e, self._extract(call_response), call_response)
         if self._should_scale:
             value /= await self.get_scale()
         return value
