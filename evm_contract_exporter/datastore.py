@@ -47,7 +47,7 @@ class GenericContractTimeSeriesKeyValueStore(TimeSeriesDataStoreBase):
                 self._bulk_insert_daemon_task
                 self._insert_queue.put_nowait(item_self)
                 return self._pending_inserts[item_self].__await__()
-            def __iter__(item_self) -> Iterator[int, types.address, Any, datetime, int, Decimal]:
+            def __iter__(item_self) -> Iterator:
                 """Make this class compatible with the `bulk.insert` interface from ypricemagic"""
                 yield self.chainid
                 yield from item_self.__struct_fields__
