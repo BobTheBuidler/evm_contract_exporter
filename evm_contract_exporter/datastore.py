@@ -103,7 +103,7 @@ class GenericContractTimeSeriesKeyValueStore(TimeSeriesDataStoreBase):
     @retry_locked
     def _bulk_insert(self, items: List["self.BulkInsertItem"]) -> None:
         try:
-            bulk.insert(db.ContractDataTimeSeriesKV, self._columns, items)
+            bulk.insert(db.ContractDataTimeSeriesKV, self._columns, items, db=db.db)
             for item in items:
                 self._pending_inserts.pop(item).set_result(None)
         except Exception as e:
