@@ -17,6 +17,7 @@ from generic_exporters.processors.exporters.datastores.timeseries._base import T
 from msgspec import Struct
 from pony.orm import TransactionIntegrityError, select
 from y import ERC20, Network, NonStandardERC20
+from y._db.decorators import retry_locked
 from y._db.utils import bulk
 from y.prices.dex.uniswap.v2 import UniswapV2Pool
 
@@ -98,6 +99,7 @@ class GenericContractTimeSeriesKeyValueStore(TimeSeriesDataStoreBase):
             items = await self._insert_queue.get(-1)
             await db.write_threads.run(self._bulk_insert, items)
     
+    @retry_locked
     def _bulk_insert(self, items: List["self.BulkInsertItem"]) -> None:
         try:
             bulk.insert(db.ContractDataTimeSeriesKV, self._columns, items)
