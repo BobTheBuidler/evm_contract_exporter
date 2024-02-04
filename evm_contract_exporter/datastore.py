@@ -36,7 +36,7 @@ class GenericContractTimeSeriesKeyValueStore(TimeSeriesDataStoreBase):
         self._pending_inserts: DefaultDict["BulkInsertItem", asyncio.Future] = defaultdict(lambda: asyncio.get_event_loop().create_future())
         self.__errd = False  # we flip this true for token/method combos that have err issues. TODO: debug this
 
-        class BulkInsertItem(Struct):
+        class BulkInsertItem(Struct, frozen=True):
             address: types.address
             metric: Any
             timestamp: datetime
