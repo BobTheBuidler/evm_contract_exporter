@@ -248,7 +248,10 @@ class TupleDerivedMetric(ContractCallDerivedMetric):
         return inflection.underscore(self._call._name.split('.')[1]) + f"[{self._index}]"
     async def produce(self, timestamp: datetime) -> Decimal:
         tup = await self._call.produce(timestamp, sync=False)
-        value = Decimal(self._extract(tup))
+        try:
+            value = Decimal(self._extract(tup))
+        except InvalidOperation as e:
+            raise e.__class__(str(e), self._extract(tup), tup)
         if self._should_scale:
             value /= await self.get_scale()
         return value
