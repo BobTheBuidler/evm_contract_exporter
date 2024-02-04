@@ -7,6 +7,7 @@ from os import mkdir, path
 
 from pony.orm import Database, LongStr, ObjectNotFound, Optional, PrimaryKey, Required, Set
 
+from evm_contract_exporter import types
 from evm_contract_exporter.db.common import db_session, write_threads
 
 
@@ -28,7 +29,7 @@ class Address(db.Entity):
 
     @classmethod
     @db_session
-    def entity_exists(cls, chainid: int, address: address) -> bool:
+    def entity_exists(cls, chainid: int, address: types.address) -> bool:
         try:
             cls[chainid, address]
             logger.debug('%s exists in db for (%s, %s)', cls.__name__, chainid, address)

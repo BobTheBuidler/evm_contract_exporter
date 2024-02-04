@@ -3,10 +3,9 @@ from typing import Union
 
 from brownie import convert
 from generic_exporters import Metric, TimeSeries
-from y.contracts import contract_creation_block_async
 
-from evm_contract_exporter import types, utils
-from evm_contract_exporter.metric import _ContractCallMetricBase
+from evm_contract_exporter import types
+from evm_contract_exporter.metric import ContractCallMetric, StructDerivedMetric, TupleDerivedMetric
 from evm_contract_exporter.scale import Scale
 
 # NOTE: is this needed? 
@@ -24,11 +23,13 @@ class _AddressKeyedTimeSeries(TimeSeries):
     def address(self) -> types.address:
         return self.metric.address
 
+AnyContractCallMetric = Union[ContractCallMetric, StructDerivedMetric, TupleDerivedMetric]
+
 class ContractCallTimeSeries(_AddressKeyedTimeSeries):
-    metric: _ContractCallMetricBase
+    metric: AnyContractCallMetric
     def __init__(
         self, 
-        metric: _ContractCallMetricBase, 
+        metric: AnyContractCallMetric, 
         *, 
         #scale: Union[bool, int, Scale] = False, 
         sync: bool = True,

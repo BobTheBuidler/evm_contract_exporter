@@ -1,6 +1,6 @@
 
 from functools import lru_cache
-from typing import List, Type
+from typing import Dict, List, Type
 
 from evm_contract_exporter import _exceptions
 from evm_contract_exporter.types.int import *
@@ -23,7 +23,7 @@ class bytes4(_bytes):
 class bytes32(_bytes):
     ...
 
-EXPORTABLE_TYPES = {
+EXPORTABLE_TYPES: Dict[str, Type] = {
     "bool": bool,
     "int8": int8,
     "int16": int16,
@@ -53,7 +53,7 @@ EXPORTABLE_TYPES = {
     "uint256": uint256,
 }
 
-UNEXPORTABLE_TYPES = {
+UNEXPORTABLE_TYPES: Dict[str, Type] = {
     "string": str,
     "bytes": bytes,
     "bytes1": bytes1,
@@ -68,6 +68,7 @@ def lookup(evm_type: str) -> Type:
         raise TypeError(f"`type` must be a string. You passed {evm_type}.")
     if is_array := evm_type.endswith('[]'):
         evm_type = evm_type[:-2]
-    if not (py_type := EXPORTABLE_TYPES.get(evm_type) or UNEXPORTABLE_TYPES.get(evm_type)):
+    py_type = EXPORTABLE_TYPES.get(evm_type) or UNEXPORTABLE_TYPES.get(evm_type)
+    if py_type is None:
         raise _exceptions.FixMe(evm_type, "This just needs to be added to `evm_contract_exporter/types/__init__.py`")
     return List[py_type] if is_array else py_type
