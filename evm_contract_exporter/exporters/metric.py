@@ -31,11 +31,13 @@ class ContractMetricExporter(TimeSeriesExporter):
         *, 
         interval: timedelta = timedelta(days=1), 
         buffer: timedelta = timedelta(minutes=5),
-        datastore: Optional["GenericContractTimeSeriesKeyValueStore"] = None,
+        datastore: Optional[GenericContractTimeSeriesKeyValueStore] = None,
         semaphore_value: Optional[int] = None,
         sync: bool = True,
     ) -> None:
-        datastore = datastore or GenericContractTimeSeriesKeyValueStore(chainid)
+        if datastore is not None and not isinstance(datastore, GenericContractTimeSeriesKeyValueStore):
+            raise TypeError(f"`datastore` must be an instance of `GenericContractTimeSeriesKeyValueStore`, you passed {datastore}")
+        datastore = datastore or GenericContractTimeSeriesKeyValueStore.get_for_chain(chainid)
         if not len({field.address for field in timeseries.metrics}) == 1:
             raise ValueError("all metrics must share an address")
         query = timeseries[self.start_timestamp(sync=False):None:interval]

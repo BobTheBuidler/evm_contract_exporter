@@ -6,7 +6,7 @@ from collections import defaultdict
 from datetime import datetime
 from dateutil import parser
 from decimal import Decimal, InvalidOperation
-from functools import cached_property
+from functools import cached_property, lru_cache
 from typing import Any, DefaultDict, Dict, Iterator, List, NoReturn, Optional
 
 import a_sync
@@ -15,7 +15,8 @@ from generic_exporters import Metric
 #from generic_exporters.plan import ReturnValue
 from generic_exporters.processors.exporters.datastores.timeseries._base import TimeSeriesDataStoreBase
 from msgspec import Struct
-from pony.orm import TransactionIntegrityError, select
+from pony.orm import select
+from typing_extensions import Self
 from y import ERC20, Network, NonStandardERC20
 from y._db.decorators import retry_locked
 from y._db.utils import bulk
@@ -30,6 +31,12 @@ logger = logging.getLogger(__name__)
 
 class GenericContractTimeSeriesKeyValueStore(TimeSeriesDataStoreBase):
     _columns = "address_chainid", "address_address", "metric", "timestamp", "blockno", "value"
+    
+    @classmethod
+    @lru_cache(maxsize=None)
+    def get_for_chain(cls, chainid: int) -> Self:
+        return cls(chainid)
+    
     def __init__(self, chain_id: int) -> None:
         self.chainid = chain_id
         self._insert_queue: a_sync.Queue["BulkInsertItem"] = a_sync.Queue()

@@ -2,6 +2,7 @@
 import logging
 from abc import abstractmethod
 from datetime import timedelta
+from typing import Optional
 
 import a_sync
 
@@ -20,12 +21,13 @@ class ContractExporterBase(a_sync.ASyncGenericBase):
         *, 
         interval: timedelta = timedelta(days=1), 
         buffer: timedelta = timedelta(minutes=5),
+        datastore: Optional[GenericContractTimeSeriesKeyValueStore] = None,
         sync: bool = True,
     ) -> None:
         self.chainid = chainid
         self.interval = interval
         self.buffer = buffer
-        self.datastore = GenericContractTimeSeriesKeyValueStore(chainid)
+        self.datastore = datastore or GenericContractTimeSeriesKeyValueStore.get_for_chain(chainid)
         self.sync = sync
     def __await__(self):
         try:

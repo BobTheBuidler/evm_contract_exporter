@@ -13,6 +13,7 @@ from y import Contract
 from y.datatypes import Address
 
 from evm_contract_exporter.contract import ContractExporterBase
+from evm_contract_exporter.datastore import GenericContractTimeSeriesKeyValueStore
 from evm_contract_exporter.exporters.method import ViewMethodExporter
 from evm_contract_exporter.metric import TupleDerivedMetric
 from evm_contract_exporter.types import EXPORTABLE_TYPES, UNEXPORTABLE_TYPES, address
@@ -31,10 +32,11 @@ class GenericContractExporter(ContractExporterBase):
         *, 
         interval: timedelta = timedelta(days=1), 
         buffer: timedelta = timedelta(minutes=5),
+        datastore: Optional[GenericContractTimeSeriesKeyValueStore] = None,
         semaphore_value: Optional[int] = 100,
         sync: bool = True
     ) -> None:
-        super().__init__(chain.id, interval=interval, buffer=buffer, sync=sync)
+        super().__init__(chain.id, interval=interval, buffer=buffer, datastore=datastore, sync=sync)
         self.address = convert.to_address(contract)
         self._semaphore_value = semaphore_value
     def __repr__(self) -> str:
