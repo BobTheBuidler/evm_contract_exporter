@@ -57,11 +57,13 @@ class GenericContractTimeSeriesKeyValueStore(TimeSeriesDataStoreBase):
             def __iter__(item) -> Iterator:
                 """Make this class compatible with the `bulk.insert` interface from ypricemagic"""
                 yield self.chainid
-                yield from item.__struct_fields__
+                for attr in item.__struct_fields__:
+                    yield getattr(item, attr)
             @classmethod
             async def bulk_insert(cls, items: List["self.BulkInsertItem"]) -> None:
                 logger.info('starting bulk insert for %s items', len(items))
                 try:
+                    
                     await bulk.insert(db.ContractDataTimeSeriesKV, self._columns, items, db=db.db)
                     for item in items:
                         self._pending_inserts.pop(item).set_result(None)
@@ -72,8 +74,7 @@ class GenericContractTimeSeriesKeyValueStore(TimeSeriesDataStoreBase):
                         return
                     logger.info("%s %s when performing bulk insert of length %s", e.__class__.__name__, e, len(items))
                     midpoint = len(items) // 2
-                    await cls.bulk_insert(items[:midpoint])
-                    await cls.bulk_insert(items[midpoint:])
+                    await asyncio.gather(cls.bulk_insert(items[:midpoint]), cls.bulk_insert(items[midpoint:]))
         
         self.BulkInsertItem = BulkInsertItem
     
