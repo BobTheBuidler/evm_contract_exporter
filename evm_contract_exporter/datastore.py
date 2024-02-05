@@ -97,7 +97,8 @@ class GenericContractTimeSeriesKeyValueStore(TimeSeriesDataStoreBase):
             if not _exceptions._is_revert(value):
                 raise value
             logger.debug("%s %s at %s (block %s) reverted with %s %s", address, key, ts, block, value.__class__.__name__, value)
-            value = db.Error.REVERT
+            # NOTE: we have to force this into an int here or it won't insert properly to sql
+            value = int(db.Error.REVERT)
         item = self.BulkInsertItem(address, key, ts, block, value)
         try:
             await item
