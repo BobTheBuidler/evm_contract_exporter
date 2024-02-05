@@ -18,7 +18,6 @@ from msgspec import Struct
 from pony.orm import select
 from typing_extensions import Self
 from y import ERC20, Network, NonStandardERC20
-from y._db.decorators import retry_locked
 from y._db.utils import bulk
 from y.prices.dex.uniswap.v2 import UniswapV2Pool
 
@@ -31,7 +30,7 @@ logger = logging.getLogger(__name__)
 
 class GenericContractTimeSeriesKeyValueStore(TimeSeriesDataStoreBase):
     _columns = "address_chainid", "address_address", "metric", "timestamp", "blockno", "value"
-    
+
     @classmethod
     @lru_cache(maxsize=None)
     def get_for_chain(cls, chainid: int) -> Self:
@@ -60,11 +59,10 @@ class GenericContractTimeSeriesKeyValueStore(TimeSeriesDataStoreBase):
                 yield self.chainid
                 yield from item.__struct_fields__
             @classmethod
-            @retry_locked
-            def bulk_insert(cls, items: List["self.BulkInsertItem"]) -> None:
+            async def bulk_insert(cls, items: List["self.BulkInsertItem"]) -> None:
                 logger.info('starting bulk insert for %s items', len(items))
                 try:
-                    bulk.insert(db.ContractDataTimeSeriesKV, self._columns, items, db=db.db)
+                    await bulk.insert(db.ContractDataTimeSeriesKV, self._columns, items, db=db.db)
                     for item in items:
                         self._pending_inserts.pop(item).set_result(None)
                     logger.info("bulk insert complete")
@@ -74,8 +72,8 @@ class GenericContractTimeSeriesKeyValueStore(TimeSeriesDataStoreBase):
                         return
                     logger.info("%s %s when performing bulk insert of length %s", e.__class__.__name__, e, len(items))
                     midpoint = len(items) // 2
-                    cls.bulk_insert(items[:midpoint])
-                    cls.bulk_insert(items[midpoint:])
+                    await cls.bulk_insert(items[:midpoint])
+                    await cls.bulk_insert(items[midpoint:])
         
         self.BulkInsertItem = BulkInsertItem
     
@@ -118,8 +116,7 @@ class GenericContractTimeSeriesKeyValueStore(TimeSeriesDataStoreBase):
         while True:
             logger.info('waiting for next bulk insert')
             items: List[self.BulkInsertItem] = [await self._insert_queue.get(), *self._insert_queue.get_nowait(-1)]
-            logger.info('sending %s items to write threads', len(items))
-            await db.write_threads.run(self.BulkInsertItem.bulk_insert, items)
+            await self.BulkInsertItem.bulk_insert(items)
 
 
 async def get_cached_timestamps(chainid: int, address: types.address, key: str) -> Dict[str, List[datetime]]:
