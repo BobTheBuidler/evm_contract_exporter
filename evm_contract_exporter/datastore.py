@@ -55,6 +55,7 @@ class GenericContractTimeSeriesKeyValueStore(TimeSeriesDataStoreBase):
             @classmethod
             @retry_locked
             def bulk_insert(cls, items: List["self.BulkInsertItem"]) -> None:
+                logger.debug('starting bulk insert for %s items', len(items))
                 try:
                     bulk.insert(db.ContractDataTimeSeriesKV, self._columns, items, db=db.db)
                     for item in items:
@@ -108,11 +109,12 @@ class GenericContractTimeSeriesKeyValueStore(TimeSeriesDataStoreBase):
             
     async def _bulk_insert_daemon(self) -> NoReturn:
         while True:
+            logger.debug('waiting for next bulk insert')
             items: List[self.BulkInsertItem] = await self._insert_queue.get(-1)
+            logger.debug('sending %s items to write threads', len(items))
             await db.write_threads.run(self.BulkInsertItem.bulk_insert, items)
 
 
-@alru_cache(maxsize=None, ttl=300)
 async def get_cached_timestamps(chainid: int, address: types.address, key: str) -> Dict[str, List[datetime]]:
     timestamps = await get_cached_datapoints_for_address(chainid, address)
     return timestamps[key]
