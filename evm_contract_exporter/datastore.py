@@ -55,17 +55,17 @@ class GenericContractTimeSeriesKeyValueStore(TimeSeriesDataStoreBase):
             @classmethod
             @retry_locked
             def bulk_insert(cls, items: List["self.BulkInsertItem"]) -> None:
-                logger.debug('starting bulk insert for %s items', len(items))
+                logger.info('starting bulk insert for %s items', len(items))
                 try:
                     bulk.insert(db.ContractDataTimeSeriesKV, self._columns, items, db=db.db)
                     for item in items:
                         self._pending_inserts.pop(item).set_result(None)
-                    logger.debug("bulk insert complete")
+                    logger.info("bulk insert complete")
                 except Exception as e:
                     if len(items) == 1:
                         self._pending_inserts.pop(items[0]).set_exception(e)
                         return
-                    logger.debug("%s %s when performing bulk insert of length %s", e.__class__.__name__, e, len(items))
+                    logger.info("%s %s when performing bulk insert of length %s", e.__class__.__name__, e, len(items))
                     midpoint = len(items) // 2
                     cls.bulk_insert(items[:midpoint])
                     cls.bulk_insert(items[midpoint:])
@@ -109,9 +109,9 @@ class GenericContractTimeSeriesKeyValueStore(TimeSeriesDataStoreBase):
             
     async def _bulk_insert_daemon(self) -> NoReturn:
         while True:
-            logger.debug('waiting for next bulk insert')
+            logger.info('waiting for next bulk insert')
             items: List[self.BulkInsertItem] = await self._insert_queue.get(-1)
-            logger.debug('sending %s items to write threads', len(items))
+            logger.info('sending %s items to write threads', len(items))
             await db.write_threads.run(self.BulkInsertItem.bulk_insert, items)
 
 
