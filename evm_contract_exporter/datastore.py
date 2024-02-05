@@ -110,7 +110,7 @@ class GenericContractTimeSeriesKeyValueStore(TimeSeriesDataStoreBase):
     async def _bulk_insert_daemon(self) -> NoReturn:
         while True:
             logger.info('waiting for next bulk insert')
-            items: List[self.BulkInsertItem] = await self._insert_queue.get(-1)
+            items: List[self.BulkInsertItem] = [await self._insert_queue.get(), *self._insert_queue.get_nowait(-1)]
             logger.info('sending %s items to write threads', len(items))
             await db.write_threads.run(self.BulkInsertItem.bulk_insert, items)
 
