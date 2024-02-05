@@ -1,5 +1,7 @@
 
 class _int(int):
+    def __str__(self) -> str:
+        return super().__repr__()
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}({super().__repr__()})"
     
