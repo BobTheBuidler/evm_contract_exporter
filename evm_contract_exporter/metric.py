@@ -289,7 +289,7 @@ class StructDerivedMetric(ContractCallDerivedMetric):
         try:
             return response_data.dict()[self._struct_key]
         except KeyError as e:
-            raise KeyError(str(e), response_data.dict()) from e
+            raise KeyError(str(e), response_data.dict(), response_data) from e
 
 
 AnyContractCallMetric = Union[ContractCallMetric, StructDerivedMetric, TupleDerivedMetric]
