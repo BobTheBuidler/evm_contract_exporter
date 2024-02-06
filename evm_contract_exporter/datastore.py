@@ -63,10 +63,11 @@ class GenericContractTimeSeriesKeyValueStore(TimeSeriesDataStoreBase):
             async def bulk_insert(cls, items: List["self.BulkInsertItem"]) -> None:
                 logger.info('starting bulk insert for %s items', len(items))
                 try:
-                    
                     await bulk.insert(db.ContractDataTimeSeriesKV, self._columns, items, db=db.db)
                     for item in items:
-                        self._pending_inserts.pop(item).set_result(None)
+                        # item may have already been popped with Future result set
+                        if item in items:
+                            self._pending_inserts.pop(item).set_result(None)
                     logger.info("bulk insert complete")
                 except Exception as e:
                     if len(items) == 1:
