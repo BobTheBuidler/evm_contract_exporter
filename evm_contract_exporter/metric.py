@@ -186,12 +186,12 @@ class ContractCallMetric(ContractCall, _ContractCallMetricBase):
         if len_outputs == 1:
             output = self._outputs[0]
             internal_type: str = output['internalType']
-            return all(
+            return all([
                 internal_type.startswith('struct '),
                 "[]" not in internal_type,
-                components := output.get('components', []),
+                components := output.get('components'),
                 all(c['name'] for c in components),
-            )
+            ])
         return len_outputs > 1 and all(o['name'] for o in self._outputs)
     
 
