@@ -69,6 +69,8 @@ class GenericContractTimeSeriesKeyValueStore(TimeSeriesDataStoreBase):
                         if item in items:
                             self._pending_inserts.pop(item).set_result(None)
                     logger.info("bulk insert complete")
+                except KeyError:
+                    raise
                 except Exception as e:
                     if len(items) == 1:
                         self._pending_inserts.pop(items[0]).set_exception(e)
