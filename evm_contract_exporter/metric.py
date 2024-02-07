@@ -287,7 +287,7 @@ class StructDerivedMetric(ContractCallDerivedMetric):
             return response_data.dict()[self._struct_key]
         except KeyError as e:
             if response_data.dict() == {} and response_data:
-                raise ValueError("`response.dict()` is empty but response for %s exists.\n abi: %s\nresponse: %s", self._call, self._call._outputs, response_data)
+                raise ValueError(f"`response.dict()` is empty but response for {self._call} exists.\nabi: {self._call._outputs}\nresponse: {response_data}")
             # reraise KeyError with some extra info
             raise KeyError(str(e), response_data.dict(), response_data) from e
 
