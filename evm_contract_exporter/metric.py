@@ -205,7 +205,7 @@ class ContractCallDerivedMetric(_ContractCallMetricBase):
         try:
             value = Decimal(self._extract(call_response)) 
         except InvalidOperation as e:
-            raise InvalidOperation(e, self._extract(call_response), call_response)
+            raise e.__class__(e, self._extract(call_response), call_response)
         if self._should_scale:
             value /= await self.get_scale()
         return value
@@ -246,15 +246,6 @@ class TupleDerivedMetric(ContractCallDerivedMetric):
     @cached_property
     def key(self) -> str:
         return inflection.underscore(self._call._name.split('.')[1]) + f"[{self._index}]"
-    async def produce(self, timestamp: datetime) -> Decimal:
-        tup = await self._call.produce(timestamp, sync=False)
-        try:
-            value = Decimal(self._extract(tup))
-        except InvalidOperation as e:
-            raise e.__class__(str(e), self._extract(tup), tup)
-        if self._should_scale:
-            value /= await self.get_scale()
-        return value
     @property
     def abi(self) -> dict:
         return self._call._outputs[self._index]
@@ -289,6 +280,9 @@ class StructDerivedMetric(ContractCallDerivedMetric):
         try:
             return response_data.dict()[self._struct_key]
         except KeyError as e:
+            if response_data.dict() == {} and response_data:
+                raise ValueError("`response.dict()` is empty but response for %s exists.\n abi: %s\nresponse: %s", self._call, self._call._outputs, response_data)
+            # reraise KeyError with some extra info
             raise KeyError(str(e), response_data.dict(), response_data) from e
 
 
