@@ -173,6 +173,9 @@ class ContractCallMetric(ContractCall, _ContractCallMetricBase):
             except _exceptions.FixMe:
                 # TODO: do this better
                 return tuple((...,))
+        if self._returns_array_of_structs:
+            # TODO: do this better
+            return list((...,))
         raise NotImplementedError(self, self._outputs)
     @cached_property
     def _should_wrap_output(self) -> bool:
@@ -194,6 +197,22 @@ class ContractCallMetric(ContractCall, _ContractCallMetricBase):
                     all(c['name'] for c in components),
                 ])
         return len_outputs > 1 and all(o['name'] for o in self._outputs)
+    @cached_property
+    def _returns_array_of_structs(self) -> bool:
+        len_outputs = len(self._outputs)
+        if len_outputs != 1:
+            return False
+        output = self._outputs[0]
+        if 'internalType' not in output:
+            return False
+        internal_type: str = output['internalType']
+        return all([
+            internal_type.startswith('struct '),
+            "[]" in internal_type,
+            components := output.get('components', []),
+            all(c['name'] for c in components),
+        ])
+
     
 
 
