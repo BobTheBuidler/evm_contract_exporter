@@ -75,12 +75,12 @@ class ContractMetricExporter(TimeSeriesExporter):
     async def produce(self, timestamp: datetime) -> TimeDataRow:
         # NOTE: we fetch this before we enter the semaphore to ensure its cached in memory when we need to use it and we dont block unnecessarily
         block = await utils.get_block_at_timestamp(timestamp)
-        async with self._semaphore[0 - timestamp.timestamp()]:
-            logger.debug("%s producing %s block %s", self, timestamp, block)
-            # NOTE: only works with one field for now
-            retval = await self.query[timestamp]
-            logger.debug("%s produced %s at %s block %s", self, retval, timestamp, block)
-            return retval
+        semaphore = self._semaphore
+        if semaphore: 
+            async with semaphore[0 - timestamp.timestamp()]:
+                return await self._produce(timestamp)
+        else:
+            return await self._produce(timestamp)
 
     @cached_property
     def _semaphore(self) -> Optional[a_sync.PrioritySemaphore]:
@@ -105,7 +105,7 @@ class ContractMetricExporter(TimeSeriesExporter):
             )
         else:
             logger.debug('no data exists for %s, exporting...', self)
-            data: TimeDataRow = await self.produce(ts, sync=False)
+            data: TimeDataRow = await self._produce(ts, sync=False)
         if data:
             raise_if_exception_in(
                 await asyncio.gather(
@@ -113,3 +113,11 @@ class ContractMetricExporter(TimeSeriesExporter):
                     return_exceptions=True,
                 )
             )
+    
+    async def _produce(self, timestamp: datetime) -> TimeDataRow:
+        block = await utils.get_block_at_timestamp(timestamp)
+        logger.debug("%s producing %s block %s", self, timestamp, block)
+        # NOTE: only works with one field for now
+        retval = await self.query[timestamp]
+        logger.debug("%s produced %s at %s block %s", self, retval, timestamp, block)
+        return retval
