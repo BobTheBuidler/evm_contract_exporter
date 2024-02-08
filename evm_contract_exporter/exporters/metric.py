@@ -105,7 +105,7 @@ class ContractMetricExporter(TimeSeriesExporter):
             )
         else:
             logger.debug('no data exists for %s, exporting...', self)
-            data: TimeDataRow = await self._produce(ts, sync=False)
+            data: TimeDataRow = await self._produce(ts)
         if data:
             raise_if_exception_in(
                 await asyncio.gather(
