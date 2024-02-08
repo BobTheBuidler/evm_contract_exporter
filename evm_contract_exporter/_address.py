@@ -9,11 +9,13 @@ from evm_contract_exporter.scale import Scale
 # NOTE: is this needed? 
 
 class _AddressKeyedMetric(Metric):
+    """This helper class is a `Metric` object that relates to a specific wallet address"""
     def __init__(self, address: types.address) -> None:
         super().__init__()
         self.address = convert.to_address(address)
 
 class _AddressKeyedTimeSeries(TimeSeries):
+    """This helper class is a `TimeSeries` object for a `Metric` that relates to a specific wallet address"""
     metric: _AddressKeyedMetric
     def __init__(self, metric: _AddressKeyedMetric, sync: bool = True) -> None:
         super().__init__(metric, sync=sync)
@@ -22,6 +24,7 @@ class _AddressKeyedTimeSeries(TimeSeries):
         return self.metric.address
 
 class ContractCallTimeSeries(_AddressKeyedTimeSeries):
+    # TODO maybe just combine this into `_AddressKeyedTimeSeries`
     metric: AnyContractCallMetric
     def __init__(
         self, 

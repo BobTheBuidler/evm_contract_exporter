@@ -75,7 +75,7 @@ class ContractMetricExporter(TimeSeriesExporter):
     async def produce(self, timestamp: datetime) -> TimeDataRow:
         # NOTE: we fetch this before we enter the semaphore to ensure its cached in memory when we need to use it and we dont block unnecessarily
         block = await utils.get_block_at_timestamp(timestamp)
-        async with self._semaphore:
+        async with self._semaphore[0 - timestamp.timestamp()]:
             logger.debug("%s producing %s block %s", self, timestamp, block)
             # NOTE: only works with one field for now
             retval = await self.query[timestamp]
