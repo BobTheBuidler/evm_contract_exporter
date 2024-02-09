@@ -18,6 +18,9 @@ from y import ERC20, get_block_at_timestamp
 from evm_contract_exporter import _exceptions, _math, scale, types, utils
 
 
+TUPLE_TYPE = tuple
+ARRAY_TYPE = list
+
 logger = logging.getLogger(__name__)
 
 class _ContractCallMetricBase(Metric):
@@ -179,7 +182,7 @@ class ContractCallMetric(ContractCall, _ContractCallMetricBase):
         raise NotImplementedError(self, self._outputs)
     @cached_property
     def _should_wrap_output(self) -> bool:
-        return not isinstance(self._output_type, tuple)
+        return not isinstance(self._output_type, (TUPLE_TYPE, ARRAY_TYPE))
     @cached_property
     def _returns_tuple_type(self) -> bool:
         return len(self._outputs) > 1 and all(not o["name"] for o in self._outputs)
