@@ -7,6 +7,7 @@ from typing import List, Optional, Union
 
 import a_sync
 import eth_retry
+from brownie.convert.datatypes import ReturnValue
 from generic_exporters import TimeSeriesExporter
 from generic_exporters.plan import TimeDataRow
 from generic_exporters.timeseries import _WideTimeSeries
@@ -109,10 +110,20 @@ class ContractMetricExporter(TimeSeriesExporter):
         if data:
             raise_if_exception_in(
                 await asyncio.gather(
-                    *[self.datastore.push(field.address, field.key, ts, value) for field, value in data.items() if value is not None], 
+                    *[
+                        self.datastore.push(field.address, field.key, ts, value) 
+                        for field, value in data.items() 
+                        if value is not None
+                        # TODO: find where these are comign from and stop them earlier
+                        and not isinstance(value, ReturnValue)
+                    ],
                     return_exceptions=True,
                 )
             )
+            for field, value in data.items():
+                if isinstance(value, ReturnValue):
+                    raise TypeError(field, value)
+
     
     async def _produce(self, timestamp: datetime) -> TimeDataRow:
         block = await utils.get_block_at_timestamp(timestamp)
