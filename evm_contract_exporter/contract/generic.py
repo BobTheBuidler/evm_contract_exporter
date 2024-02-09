@@ -69,7 +69,7 @@ class GenericContractExporter(ContractExporterBase):
                     if abi["type"] in EXPORTABLE_TYPES:
                         data.append(derived_metric)
                     elif abi["type"] not in UNEXPORTABLE_TYPES:
-                        logger.info('unable to export struct member %s', derived_metric)
+                        logger.info('unable to export struct member %s return type %s', derived_metric, abi["type"])
             else:
                 data.append(timeseries)
         if data:
