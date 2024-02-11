@@ -68,13 +68,18 @@ class _ContractCallMetricBase(Metric):
 
 class ContractCallMetric(ContractCall, _ContractCallMetricBase):
     """A hybrid between a `ContractCall` and a `Metric`. Will function as you would expect from any `ContractCall` object, but can also be used as an exportable `Metric` in `evm_contract_exporter`"""
-    def __init__(self, original_call: ContractCall, *args, scale: Union[bool, int, scale.Scale] = False) -> None:
+    def __init__(self, original_call: ContractCall, *args, scale: Union[bool, int, scale.Scale] = False, key: str = '') -> None:
         super().__init__(original_call._address, original_call.abi, original_call._name, original_call._owner, original_call.natspec)
         Metric.__init__(self)
+        if not isinstance(original_call, ContractCall):
+            raise TypeError(f'`original_call` must be `ContractCall`. You passed {original_call}')
+        self._original_call = original_call
         self._args = args
+        if key and not isinstance(key, str):
+            raise TypeError(f'`key` must be a string. You passed {key}')
+        self._key = key
         if not isinstance(scale, bool) and not self._can_scale:
             raise ValueError(f"{self} is not scalable. output type: {self._output_type or self._outputs}")
-        self._original_call = original_call
         self._cache: Dict[datetime, Tuple[int, asyncio.Task]] = {}
         self.__scale = scale
     def __repr__(self) -> str:
@@ -91,7 +96,7 @@ class ContractCallMetric(ContractCall, _ContractCallMetricBase):
         return self.__scale
     @cached_property
     def key(self) -> str:
-        return inflection.underscore(self._name.split('.')[1])
+        return self._key or inflection.underscore(self._name.split('.')[1])
     @overload
     def __getitem__(self, key: "slice[datetime, datetime, timedelta]", end: Optional[datetime], interval: timedelta = timedelta(days=1)) -> TimeSeries:
         ...
