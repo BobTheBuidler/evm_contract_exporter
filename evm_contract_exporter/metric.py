@@ -53,7 +53,7 @@ class _ContractCallMetricBase(Metric):
         elif self._scale is True:
             return Decimal(await ERC20(self.address, asynchronous=True).scale)
         elif isinstance(self._scale, scale.Scale):
-            return self._scale.produce(None)
+            return await self._scale.produce(None)
         return Decimal(self._scale)
     @abstractproperty
     def address(self) -> int:
@@ -152,8 +152,7 @@ class ContractCallMetric(ContractCall, _ContractCallMetricBase):
                     if isinstance(retval, ReturnValue):
                         logger.warning("attempted to scale %s, debug!  method: %s  should_scale: %s  output_type: %s  outputs: %s", retval, self._original_call, self._should_scale, self._output_type, self._outputs)
                     else:
-                        scale = await self.get_scale()
-                        retval /= scale
+                        retval /= await self.get_scale()
                 return retval
             except Exception as e:
                 if '429' not in str(e):
