@@ -5,6 +5,7 @@ from evm_contract_exporter.contract import GenericContractExporter, ContractExpo
 from evm_contract_exporter.exporters import ContractMetricExporter, ViewMethodExporter
 from evm_contract_exporter.metric import ContractCallMetric
 from evm_contract_exporter.scale import Scale, SmartScale
+from evm_contract_exporter.utils import wrap_contract
 
 __all__ = [
     ContractExporterBase, 
@@ -18,4 +19,5 @@ __all__ = [
     SmartScale,
     TimeSeries,
     WideTimeSeries,
+    wrap_contract,
 ]
