@@ -40,7 +40,7 @@ class _ContractCallMetricBase(Metric):
                 # NOTE: If scaling is disabled, of course we do not scale.
                 else False
             )
-        elif isinstance(self._scale, int):
+        elif isinstance(self._scale, (int, scale.Scale)):
             # NOTE: If the user provides a specific scaling factor, we always honor it. Good luck.
             return True
         # NOTE: Otherwise, wtf scaling value is this?
