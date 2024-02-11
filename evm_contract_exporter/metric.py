@@ -233,7 +233,7 @@ class ContractCallDerivedMetric(_ContractCallMetricBase):
         call_response = await self._call.produce(timestamp, sync=False)
         try:
             value = Decimal(self._extract(call_response)) 
-        except InvalidOperation as e:
+        except (InvalidOperation, ValueError) as e:
             raise e.__class__(e, self._extract(call_response), call_response)
         if self._should_scale:
             value /= await self.get_scale()
