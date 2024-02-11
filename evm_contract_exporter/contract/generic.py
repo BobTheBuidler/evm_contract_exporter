@@ -15,7 +15,7 @@ from y.datatypes import Address
 from evm_contract_exporter.contract import ContractExporterBase
 from evm_contract_exporter.datastore import GenericContractTimeSeriesKeyValueStore
 from evm_contract_exporter.exporters.method import ViewMethodExporter
-from evm_contract_exporter.metric import TupleDerivedMetric
+from evm_contract_exporter.metric import AnyContractCallMetric, StructDerivedMetric, TupleDerivedMetric
 from evm_contract_exporter.types import EXPORTABLE_TYPES, UNEXPORTABLE_TYPES, address
 
 
@@ -46,32 +46,8 @@ class GenericContractExporter(ContractExporterBase):
         return asyncio.Task(self._await())
     @async_cached_property
     async def method_exporter(self) -> Optional[ViewMethodExporter]:
-        from evm_contract_exporter.exporters.method import _wrap_method
         contract = await Contract.coroutine(self.address)
-        data = []
-        for view_method in _safe_views(contract):
-            timeseries = _wrap_method(view_method, True)
-            if timeseries.metric._returns_tuple_type:
-                member: TupleDerivedMetric
-                for member in (timeseries.metric[i] for i in range(len(timeseries.metric._outputs))):
-                    if member.abi["type"] in EXPORTABLE_TYPES:
-                        data.append(member)
-                    elif member.abi["type"] not in UNEXPORTABLE_TYPES:
-                        logger.info('unable to export tuple member %s', member)
-            elif timeseries.metric._returns_struct_type:
-                outputs = timeseries.metric._outputs
-                if len(outputs) == 1:
-                    outputs = outputs[0]['components']
-                assert all(abi['name'] for abi in outputs), outputs
-                for abi in outputs:
-                    struct_key = abi['name']
-                    derived_metric = timeseries.metric[struct_key]
-                    if abi["type"] in EXPORTABLE_TYPES:
-                        data.append(derived_metric)
-                    elif abi["type"] not in UNEXPORTABLE_TYPES:
-                        logger.info('unable to export struct member %s return type %s', derived_metric, abi["type"])
-            else:
-                data.append(timeseries)
+        data = [d for view_method in _safe_views(contract) for d in unpack(view_method)]
         if data:
             return ViewMethodExporter(
                 *data, 
@@ -190,6 +166,40 @@ def _safe_views(contract: Contract) -> List[ContractCall]:
     """Returns a list of the view methods on `contract` that are suitable for exporting"""
     return [function for function in _list_view_methods(contract) if _has_no_args(function) and _exportable_return_value_type(function)]
 
+def unpack(metric: AnyContractCallMetric) -> List[AnyContractCallMetric]:
+    """
+    If `metric` returns multiple values, we can't export it. We need to derive new metrics to represent each field.
+    returns a list of exportable metrics derived from input `metric`
+    """
+    from evm_contract_exporter.exporters.method import _wrap_method
+    timeseries = _wrap_method(metric, True)
+    unpacked = []
+    if timeseries.metric._returns_tuple_type:
+        member: TupleDerivedMetric
+        for member in (timeseries.metric[i] for i in range(len(timeseries.metric._outputs))):
+            if member.abi["type"] in EXPORTABLE_TYPES:
+                unpacked.append(member)
+            elif member.abi["type"] == "tuple":
+                unpacked.extend(unpack(member))
+            elif member.abi["type"] not in UNEXPORTABLE_TYPES:
+                logger.info('unable to export tuple member %s', member)
+    elif timeseries.metric._returns_struct_type:
+        outputs = timeseries.metric._outputs
+        if len(outputs) == 1:
+            outputs = outputs[0]['components']
+        assert all(abi['name'] for abi in outputs), outputs
+        for abi in outputs:
+            struct_key = abi['name']
+            derived_metric: StructDerivedMetric = timeseries.metric[struct_key]
+            if abi["type"] in EXPORTABLE_TYPES:
+                unpacked.append(derived_metric)
+            elif abi["type"] == "tuple":
+                unpacked.extend(unpack(derived_metric))
+            elif abi["type"] not in UNEXPORTABLE_TYPES:
+                logger.info('unable to export struct member %s return type %s', derived_metric, abi["type"])
+    else:
+        unpacked.append(timeseries.metric)
+    return unpacked
 
 is_tuple_type = lambda outputs: all(not o["name"] for o in outputs)
 is_struct_type = lambda outputs: all(o['name'] for o in outputs)
