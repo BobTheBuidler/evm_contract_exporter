@@ -6,6 +6,7 @@ import a_sync
 import y
 from brownie.network.contract import ContractCall
 from dank_mids.brownie_patch.contract import patch_contract
+from y.utils.dank_mids import dank_w3
 
 from evm_contract_exporter import types
 
@@ -28,7 +29,7 @@ async def get_deploy_block(contract: types.address) -> int:
 def wrap_contract(contract: y.Contract, scale: "Scaley" = True) -> y.Contract:
     """Converts all `ContractCall` objects in `contract.__dict__` to `ContractCallMetric` objects with more functionality"""
     from evm_contract_exporter.metric import ContractCallMetric
-    contract = patch_contract(contract)
+    contract = patch_contract(contract, dank_w3)
     for k, v in contract.__dict__.items():
         if isinstance(v, ContractCall):
             # we cant use setattr here because brownie raises some error
