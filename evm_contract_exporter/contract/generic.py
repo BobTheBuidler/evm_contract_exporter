@@ -191,12 +191,13 @@ def unpack(metric: AnyContractCallMetric) -> List[AnyContractCallMetric]:
         for abi in outputs:
             struct_key = abi['name']
             derived_metric: StructDerivedMetric = timeseries.metric[struct_key]
-            if abi["type"] in EXPORTABLE_TYPES:
+            type_str: str = abi["type"]
+            if type_str in EXPORTABLE_TYPES:
                 unpacked.append(derived_metric)
-            elif abi["type"] == "tuple":
+            elif type_str == "tuple":
                 unpacked.extend(unpack(derived_metric))
-            elif abi["type"] not in UNEXPORTABLE_TYPES:
-                logger.info('unable to export struct member %s return type %s', derived_metric, abi["type"])
+            elif type_str not in UNEXPORTABLE_TYPES and not type_str.endswith("[]"):
+                logger.info('unable to export struct member %s return type %s', derived_metric, type_str)
     else:
         unpacked.append(timeseries.metric)
     return unpacked
