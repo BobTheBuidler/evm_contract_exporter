@@ -122,7 +122,7 @@ class ContractMetricExporter(TimeSeriesExporter):
             )
             for field, value in data.items():
                 if isinstance(value, ReturnValue):
-                    raise TypeError(field, value)
+                    raise TypeError(field, field._output_type, value)
 
     
     async def _produce(self, timestamp: datetime) -> TimeDataRow:
