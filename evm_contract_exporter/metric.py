@@ -18,6 +18,9 @@ from y import ERC20, get_block_at_timestamp
 from evm_contract_exporter import _exceptions, _math, scale, types, utils
 
 
+TUPLE_TYPE = tuple
+ARRAY_TYPE = list
+
 logger = logging.getLogger(__name__)
 
 class _ContractCallMetricBase(Metric):
@@ -37,7 +40,7 @@ class _ContractCallMetricBase(Metric):
                 # NOTE: If scaling is disabled, of course we do not scale.
                 else False
             )
-        elif isinstance(self._scale, int):
+        elif isinstance(self._scale, (int, scale.Scale)):
             # NOTE: If the user provides a specific scaling factor, we always honor it. Good luck.
             return True
         # NOTE: Otherwise, wtf scaling value is this?
@@ -50,7 +53,7 @@ class _ContractCallMetricBase(Metric):
         elif self._scale is True:
             return Decimal(await ERC20(self.address, asynchronous=True).scale)
         elif isinstance(self._scale, scale.Scale):
-            return self._scale.produce(None)
+            return await self._scale.produce(None)
         return Decimal(self._scale)
     @abstractproperty
     def address(self) -> int:
@@ -65,13 +68,18 @@ class _ContractCallMetricBase(Metric):
 
 class ContractCallMetric(ContractCall, _ContractCallMetricBase):
     """A hybrid between a `ContractCall` and a `Metric`. Will function as you would expect from any `ContractCall` object, but can also be used as an exportable `Metric` in `evm_contract_exporter`"""
-    def __init__(self, original_call: ContractCall, *args, scale: Union[bool, int, scale.Scale] = False) -> None:
+    def __init__(self, original_call: ContractCall, *args, scale: Union[bool, int, scale.Scale] = False, key: str = '') -> None:
         super().__init__(original_call._address, original_call.abi, original_call._name, original_call._owner, original_call.natspec)
         Metric.__init__(self)
+        if not isinstance(original_call, ContractCall):
+            raise TypeError(f'`original_call` must be `ContractCall`. You passed {original_call}')
+        self._original_call = original_call
         self._args = args
+        if key and not isinstance(key, str):
+            raise TypeError(f'`key` must be a string. You passed {key}')
+        self._key = key
         if not isinstance(scale, bool) and not self._can_scale:
             raise ValueError(f"{self} is not scalable. output type: {self._output_type or self._outputs}")
-        self._original_call = original_call
         self._cache: Dict[datetime, Tuple[int, asyncio.Task]] = {}
         self.__scale = scale
     def __repr__(self) -> str:
@@ -88,7 +96,7 @@ class ContractCallMetric(ContractCall, _ContractCallMetricBase):
         return self.__scale
     @cached_property
     def key(self) -> str:
-        return inflection.underscore(self._name.split('.')[1])
+        return self._key or inflection.underscore(self._name.split('.')[1])
     @overload
     def __getitem__(self, key: "slice[datetime, datetime, timedelta]", end: Optional[datetime], interval: timedelta = timedelta(days=1)) -> TimeSeries:
         ...
@@ -149,8 +157,7 @@ class ContractCallMetric(ContractCall, _ContractCallMetricBase):
                     if isinstance(retval, ReturnValue):
                         logger.warning("attempted to scale %s, debug!  method: %s  should_scale: %s  output_type: %s  outputs: %s", retval, self._original_call, self._should_scale, self._output_type, self._outputs)
                     else:
-                        scale = await self.get_scale()
-                        retval /= scale
+                        retval /= await self.get_scale()
                 return retval
             except Exception as e:
                 if '429' not in str(e):
@@ -173,10 +180,13 @@ class ContractCallMetric(ContractCall, _ContractCallMetricBase):
             except _exceptions.FixMe:
                 # TODO: do this better
                 return tuple((...,))
+        if self._returns_array_of_structs:
+            # TODO: do this better
+            return list((...,))
         raise NotImplementedError(self, self._outputs)
     @cached_property
     def _should_wrap_output(self) -> bool:
-        return not isinstance(self._output_type, tuple)
+        return not isinstance(self._output_type, (TUPLE_TYPE, ARRAY_TYPE))
     @cached_property
     def _returns_tuple_type(self) -> bool:
         return len(self._outputs) > 1 and all(not o["name"] for o in self._outputs)
@@ -185,8 +195,31 @@ class ContractCallMetric(ContractCall, _ContractCallMetricBase):
         len_outputs = len(self._outputs)
         if len_outputs == 1:
             output = self._outputs[0]
-            return 'components' in output and output['internalType'].startswith('struct ') and all(c['name'] for c in output['components'])
+            if 'internalType' in output:
+                internal_type: str = output['internalType']
+                return all([
+                    internal_type.startswith('struct '),
+                    "[]" not in internal_type,
+                    components := output.get('components', []),
+                    all(c['name'] for c in components),
+                ])
         return len_outputs > 1 and all(o['name'] for o in self._outputs)
+    @cached_property
+    def _returns_array_of_structs(self) -> bool:
+        len_outputs = len(self._outputs)
+        if len_outputs != 1:
+            return False
+        output = self._outputs[0]
+        if 'internalType' not in output:
+            return False
+        internal_type: str = output['internalType']
+        return all([
+            internal_type.startswith('struct '),
+            "[]" in internal_type,
+            components := output.get('components', []),
+            all(c['name'] for c in components),
+        ])
+
     
 
 
@@ -204,8 +237,8 @@ class ContractCallDerivedMetric(_ContractCallMetricBase):
         call_response = await self._call.produce(timestamp, sync=False)
         try:
             value = Decimal(self._extract(call_response)) 
-        except InvalidOperation as e:
-            raise InvalidOperation(e, self._extract(call_response), call_response)
+        except (InvalidOperation, ValueError) as e:
+            raise e.__class__(e, self._extract(call_response), call_response, self, self._output_type)
         if self._should_scale:
             value /= await self.get_scale()
         return value
@@ -246,12 +279,6 @@ class TupleDerivedMetric(ContractCallDerivedMetric):
     @cached_property
     def key(self) -> str:
         return inflection.underscore(self._call._name.split('.')[1]) + f"[{self._index}]"
-    async def produce(self, timestamp: datetime) -> Decimal:
-        tup = await self._call.produce(timestamp, sync=False)
-        value = Decimal(self._extract(tup))
-        if self._should_scale:
-            value /= await self.get_scale()
-        return value
     @property
     def abi(self) -> dict:
         return self._call._outputs[self._index]
@@ -286,4 +313,10 @@ class StructDerivedMetric(ContractCallDerivedMetric):
         try:
             return response_data.dict()[self._struct_key]
         except KeyError as e:
-            raise KeyError(str(e), response_data.dict()) from e
+            if response_data.dict() == {} and response_data:
+                raise ValueError(f"`response.dict()` is empty but response for {self._call} exists.\nabi: {self._call._outputs}\nresponse: {response_data}")
+            # reraise KeyError with some extra info
+            raise KeyError(str(e), response_data.dict(), response_data) from e
+
+
+AnyContractCallMetric = Union[ContractCallMetric, StructDerivedMetric, TupleDerivedMetric]

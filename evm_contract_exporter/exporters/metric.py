@@ -7,6 +7,7 @@ from typing import List, Optional, Union
 
 import a_sync
 import eth_retry
+from brownie.convert.datatypes import ReturnValue
 from generic_exporters import TimeSeriesExporter
 from generic_exporters.plan import TimeDataRow
 from generic_exporters.timeseries import _WideTimeSeries
@@ -31,11 +32,13 @@ class ContractMetricExporter(TimeSeriesExporter):
         *, 
         interval: timedelta = timedelta(days=1), 
         buffer: timedelta = timedelta(minutes=5),
-        datastore: Optional["GenericContractTimeSeriesKeyValueStore"] = None,
+        datastore: Optional[GenericContractTimeSeriesKeyValueStore] = None,
         semaphore_value: Optional[int] = None,
         sync: bool = True,
     ) -> None:
-        datastore = datastore or GenericContractTimeSeriesKeyValueStore(chainid)
+        if datastore is not None and not isinstance(datastore, GenericContractTimeSeriesKeyValueStore):
+            raise TypeError(f"`datastore` must be an instance of `GenericContractTimeSeriesKeyValueStore`, you passed {datastore}")
+        datastore = datastore or GenericContractTimeSeriesKeyValueStore.get_for_chain(chainid)
         if not len({field.address for field in timeseries.metrics}) == 1:
             raise ValueError("all metrics must share an address")
         query = timeseries[self.start_timestamp(sync=False):None:interval]
@@ -55,7 +58,7 @@ class ContractMetricExporter(TimeSeriesExporter):
 
     async def ensure_data(self, ts: datetime) -> None:
         if semaphore := self._semaphore:
-            async with semaphore[ts.timestamp()]:
+            async with semaphore[0-ts.timestamp()]:
                 await self._ensure_data(ts)
         else:
             await self._ensure_data(ts)
@@ -73,12 +76,12 @@ class ContractMetricExporter(TimeSeriesExporter):
     async def produce(self, timestamp: datetime) -> TimeDataRow:
         # NOTE: we fetch this before we enter the semaphore to ensure its cached in memory when we need to use it and we dont block unnecessarily
         block = await utils.get_block_at_timestamp(timestamp)
-        async with self._semaphore:
-            logger.debug("%s producing %s block %s", self, timestamp, block)
-            # NOTE: only works with one field for now
-            retval = await self.query[timestamp]
-            logger.debug("%s produced %s at %s block %s", self, retval, timestamp, block)
-            return retval
+        semaphore = self._semaphore
+        if semaphore: 
+            async with semaphore[0 - timestamp.timestamp()]:
+                return await self._produce(timestamp)
+        else:
+            return await self._produce(timestamp)
 
     @cached_property
     def _semaphore(self) -> Optional[a_sync.PrioritySemaphore]:
@@ -103,11 +106,29 @@ class ContractMetricExporter(TimeSeriesExporter):
             )
         else:
             logger.debug('no data exists for %s, exporting...', self)
-            data: TimeDataRow = await self.produce(ts, sync=False)
+            data: TimeDataRow = await self._produce(ts)
         if data:
             raise_if_exception_in(
                 await asyncio.gather(
-                    *[self.datastore.push(field.address, field.key, ts, value) for field, value in data.items() if value is not None], 
+                    *[
+                        self.datastore.push(field.address, field.key, ts, value) 
+                        for field, value in data.items() 
+                        if value is not None
+                        # TODO: find where these are comign from and stop them earlier
+                        and not isinstance(value, ReturnValue)
+                    ],
                     return_exceptions=True,
                 )
             )
+            for field, value in data.items():
+                if isinstance(value, ReturnValue):
+                    raise TypeError(field, field._output_type, value)
+
+    
+    async def _produce(self, timestamp: datetime) -> TimeDataRow:
+        block = await utils.get_block_at_timestamp(timestamp)
+        logger.debug("%s producing %s block %s", self, timestamp, block)
+        # NOTE: only works with one field for now
+        retval = await self.query[timestamp]
+        logger.debug("%s produced %s at %s block %s", self, retval, timestamp, block)
+        return retval

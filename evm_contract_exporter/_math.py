@@ -56,12 +56,19 @@ class _ContractCallMathResultMetricBase(_MathResultMetricBase):
     @overload
     async def coroutine(*args, decimals: int, **kwargs) -> Decimal:...
     @calc_decimals
-    async def coroutine(self, *args, decimals: Optional[int] = None, **kwargs) -> Any:
+    async def coroutine(self, *args, decimals: Optional[int] = None, **kwargs) -> Decimal:
         """Functions like a dank_mids patched `ContractCall.coroutine` api without arg support."""
+        if args:
+            raise ValueError('cannot be used with args')
         retval = self._do_math(*await asyncio.gather(self.metric0.coroutine(**kwargs), self.metric1.coroutine(**kwargs)))
-        return retval if decimals is None else retval / Decimal(10) ** decimals
+        if decimals is not None:
+            retval /= Decimal(10) ** decimals
+        return retval
     def _calc_decimals(self, retval: int, decimals: Optional[int]):
         return (retval / Decimal(10) ** decimals) if decimals else retval
+    def _do_math(self, value0, value1) -> Decimal:
+        # TODO: maybe migrate this directly into generic_exporters
+        return super()._do_math(Decimal(value0), Decimal(value1))
     
 
 

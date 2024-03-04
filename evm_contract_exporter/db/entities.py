@@ -65,7 +65,7 @@ class Contract(Address):
     @db_session
     def _set_non_verified(cls, chainid: int, address: str) -> None:
         entity = cls[chainid, address]
-        entity.is_non_verified = True
+        entity.is_verified = False
         entity.last_checked_verified = datetime.utcnow()
 
 

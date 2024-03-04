@@ -7,10 +7,9 @@ from brownie import chain
 from brownie.network.contract import _ContractMethod
 
 from generic_exporters.timeseries import _WideTimeSeries, WideTimeSeries
-from generic_exporters.processors.exporters.datastores.timeseries._base import TimeSeriesDataStoreBase
 
-from evm_contract_exporter import _exceptions
 from evm_contract_exporter._address import ContractCallTimeSeries
+from evm_contract_exporter.datastore import GenericContractTimeSeriesKeyValueStore
 from evm_contract_exporter.exporters.metric import ContractMetricExporter
 from evm_contract_exporter.metric import ContractCallDerivedMetric, ContractCallMetric
 from evm_contract_exporter.scale import Scale
@@ -27,8 +26,8 @@ class ViewMethodExporter(ContractMetricExporter):
         *methods: Method,
         interval: timedelta = timedelta(days=1), 
         buffer: timedelta = timedelta(minutes=5), 
-        scale: Scaley = False, 
-        datastore: TimeSeriesDataStoreBase = None,
+        scale: Scaley = False,
+        datastore: Optional[GenericContractTimeSeriesKeyValueStore] = None,
         semaphore_value: Optional[int] = None,
         sync: bool = True,
     ) -> None:
