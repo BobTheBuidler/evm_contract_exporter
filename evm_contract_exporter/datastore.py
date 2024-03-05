@@ -71,7 +71,7 @@ class GenericContractTimeSeriesKeyValueStore(TimeSeriesDataStoreBase):
                     await bulk.insert(db.ContractDataTimeSeriesKV, self._columns, items, db=db.db)
                     for item in items:
                         # item may have already been popped with Future result set
-                        if item in items:
+                        if item in self._pending_inserts:
                             self._pending_inserts.pop(item).set_result(None)
                     logger.info("bulk insert complete")
                 except KeyError:
