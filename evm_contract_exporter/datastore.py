@@ -41,9 +41,11 @@ class GenericContractTimeSeriesKeyValueStore(TimeSeriesDataStoreBase):
         self.chainid = chain_id
         self._insert_queue: a_sync.Queue["BulkInsertItem"] = a_sync.Queue()
         self._pending_inserts: DefaultDict["BulkInsertItem", asyncio.Future] = defaultdict(lambda: asyncio.get_event_loop().create_future())
+        self._exc: Optional[Exception] = None
         self.__errd = False  # we flip this true for token/method combos that have err issues. TODO: debug this
 
         class BulkInsertItem(Struct, frozen=True):
+            # TODO refactor this
             address: types.address
             metric: Any
             timestamp: datetime
@@ -53,6 +55,8 @@ class GenericContractTimeSeriesKeyValueStore(TimeSeriesDataStoreBase):
                 logger.debug("inserting %s", item)
                 # ensure daemon is running
                 self._bulk_insert_daemon_task
+                if self._exc:
+                    raise self._exc
                 self._insert_queue.put_nowait(item)
                 return self._pending_inserts[item].__await__()
             def __iter__(item) -> Iterator:
@@ -119,11 +123,14 @@ class GenericContractTimeSeriesKeyValueStore(TimeSeriesDataStoreBase):
         return asyncio.create_task(self._bulk_insert_daemon())
             
     async def _bulk_insert_daemon(self) -> NoReturn:
-        while True:
-            logger.info('waiting for next bulk insert')
-            items: List[self.BulkInsertItem] = [await self._insert_queue.get(), *self._insert_queue.get_nowait(-1)]
-            await self.BulkInsertItem.bulk_insert(items)
-
+        try:
+            while True:
+                logger.info('waiting for next bulk insert')
+                items: List[self.BulkInsertItem] = await self._insert_queue.get_all()
+                await self.BulkInsertItem.bulk_insert(items)
+        except Exception as e:
+            self._exc = e
+            raise e
 
 async def get_cached_timestamps(chainid: int, address: types.address, key: str) -> Dict[str, List[datetime]]:
     timestamps = await get_cached_datapoints_for_address(chainid, address)
