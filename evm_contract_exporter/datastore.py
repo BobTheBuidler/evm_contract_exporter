@@ -20,6 +20,7 @@ from pony.orm import select
 from typing_extensions import Self
 from y import ERC20, Network, NonStandardERC20
 from y._db.utils import bulk
+from y.contracts import is_contract
 from y.prices.dex.uniswap.v2 import UniswapV2Pool
 
 from evm_contract_exporter import _exceptions, db, types
@@ -189,7 +190,10 @@ async def _ensure_entity(address: types.address) -> None:
             kwargs['name'], kwargs['symbol'] = await asyncio.gather(erc20.name, erc20.symbol)
             await db.write_threads.run(db.Token.insert_entity, **kwargs)
             return
-        await db.write_threads.run(db.Contract.insert_entity, **kwargs)
+        if await db.read_threads.run(is_contract, address):
+            await db.write_threads.run(db.Contract.insert_entity, **kwargs)
+        else:
+            await db.write_threads.run(db.Address.insert_entity, **kwargs)
     except AssertionError as e:
         if 'probe' not in str(e):
             if str(e) != 'uint112,uint112':  # this just addresses an easter egg that needs fixin' in ypricemagic
