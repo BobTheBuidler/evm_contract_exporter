@@ -174,7 +174,10 @@ async def _ensure_entity(address: types.address) -> None:
                     token0 = ERC20(token0, asynchronous=True)
                 if not isinstance(token1, ERC20):
                     token1 = ERC20(token1, asynchronous=True)
-                token0_symbol, token1_symbol = await asyncio.gather(token0.symbol, token1.symbol)
+                try:
+                    token0_symbol, token1_symbol = await asyncio.gather(token0.symbol, token1.symbol)
+                except NonStandardERC20:
+                    raise Exception(f"Non-standard underlying token for {address}")
                 extra = f" ({token0_symbol}/{token1_symbol})"
                 name += extra
                 symbol += extra
@@ -186,7 +189,6 @@ async def _ensure_entity(address: types.address) -> None:
             kwargs['name'], kwargs['symbol'] = await asyncio.gather(erc20.name, erc20.symbol)
             await db.write_threads.run(db.Token.insert_entity, **kwargs)
             return
-        raise
         await db.write_threads.run(db.Contract.insert_entity, **kwargs)
     except AssertionError as e:
         if 'probe' not in str(e):
