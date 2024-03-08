@@ -153,8 +153,15 @@ def _timestamps_present(chainid: int, address: types.address) -> Dict[str, List[
         and d.address.address == address 
     )
     present = defaultdict(list)
-    for key, datetimestr in query:
-        present[key].append(parser.parse(datetimestr))
+    for key, datetimedata in query:
+        if isinstance(datetimedata, str):
+            # when using sqlite provider
+            present[key].append(parser.parse(datetimedata))
+        elif isinstance(datetimedata, datetime):
+            # when using postgres provider
+            present[key].append(datetimedata)
+        else:
+            raise TypeError(datetimedata)
     return present
 
 
