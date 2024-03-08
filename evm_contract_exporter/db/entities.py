@@ -114,6 +114,15 @@ if ENVS.DB_PROVIDER == "sqlite":
         create_db = True,
     )
 else:
-    raise NotImplementedError(ENVS.DB_PROVIDER)
+    connection_settings = {
+        'provider': str(ENVS.DB_PROVIDER),
+        'host': str(ENVS.DB_HOST),
+        'user': str(ENVS.DB_USER),
+        'password': str(ENVS.DB_PASSWORD),
+        'database': str(ENVS.DB_DATABASE),
+    }
+    if ENVS.DB_PORT:
+        connection_settings['port'] = int(ENVS.DB_PORT)  # type: ignore [call-overload]
+    db.bind(**connection_settings)
 
 db.generate_mapping(create_tables=True)
