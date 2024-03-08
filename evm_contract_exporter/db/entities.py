@@ -5,7 +5,7 @@ from datetime import datetime
 from decimal import Decimal
 from os import mkdir, path
 
-from pony.orm import Database, LongStr, ObjectNotFound, Optional, PrimaryKey, Required, Set
+from pony.orm import Database, LongStr, ObjectNotFound, Optional, PrimaryKey, Required, Set, commit
 
 from evm_contract_exporter import types
 from evm_contract_exporter.db.common import db_session, write_threads
@@ -42,11 +42,11 @@ class Address(db.Entity):
     @db_session
     def insert_entity(cls, *args, **kwargs) -> None: #chainid: int, address: address, name: str, symbol: str, decimals: int) -> None:
         entity = cls(*args, **kwargs)
+        commit()
         if isinstance(entity, Token):
             logger.debug("New token %s found: %s %s", kwargs['symbol'], entity, kwargs['name'])
         else:
             logger.debug("inserted %s to db", entity)
-        print(entity)
 
 
 class Contract(Address):
