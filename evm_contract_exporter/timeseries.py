@@ -1,15 +1,17 @@
 
-from typing import Union, final
+from typing import TYPE_CHECKING, Union, final
 
 import generic_exporters
 
 from evm_contract_exporter import types
-from evm_contract_exporter.metric import _MetricBase, AnyContractCallMetric
+
+if TYPE_CHECKING:
+    from evm_contract_exporter.metric import _MetricBase, AnyContractCallMetric
 
 
 class TimeSeries(generic_exporters.TimeSeries):  # type: ignore [misc]
-    metric: _MetricBase
-    def __init__(self, metric: _MetricBase, sync: bool = True) -> None:
+    metric: "_MetricBase"
+    def __init__(self, metric: "_MetricBase", sync: bool = True) -> None:
         super().__init__(metric, sync=sync)
     @property
     def address(self) -> types.address:
@@ -22,11 +24,12 @@ class ContractCallTimeSeries(TimeSeries):  # type: ignore [misc]
         metric_repr = repr(self.metric)
         return f"<{self.__class__.__name__} {metric_repr[metric_repr.find('0x'):]}"
     
-SingleProcessable = Union[_MetricBase, TimeSeries]
+SingleProcessable = Union["_MetricBase", TimeSeries]
 
 @final
 class WideTimeSeries(generic_exporters.WideTimeSeries):  # type: ignore [misc]
     def __init__(self, *timeserieses: SingleProcessable, sync: bool = True) -> None:
+        from evm_contract_exporter.metric import _MetricBase
         for x in timeserieses:
             if not isinstance(x, (TimeSeries, _MetricBase)):
                 raise TypeError(f"`x` must be a `TimeSeries` or a `Metric` object. You passed {x}")
