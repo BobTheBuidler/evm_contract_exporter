@@ -28,12 +28,13 @@ logger = logging.getLogger(__name__)
 
 # NOTE: is this needed? 
 class _MetricBase(generic_exporters.Metric):
+    """This base class is a `generic_exporters.Metric` object that relates to a specific on-chain wallet `address`"""
     @abstractproperty
     def address(self) -> types.address:
         ...
 
 class Metric(_MetricBase):
-    """This helper class is a `Metric` object that relates to a specific wallet address"""
+    """This class is a `generic_exporters.Metric` object that relates to a specific on-chain wallet `address`"""
     def __init__(self, address: types.address) -> None:
         super().__init__()
         self.__address = types.address(convert.to_address(address))
