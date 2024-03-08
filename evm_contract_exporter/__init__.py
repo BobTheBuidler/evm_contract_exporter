@@ -2,6 +2,7 @@
 from generic_exporters import Constant
 
 from evm_contract_exporter.contract import GenericContractExporter, ContractExporterBase
+from evm_contract_exporter.examples import Price
 from evm_contract_exporter.exporters import ContractMetricExporter, ViewMethodExporter
 from evm_contract_exporter.metric import ContractCallMetric, Metric
 from evm_contract_exporter.scale import Scale, SmartScale
@@ -21,4 +22,5 @@ __all__ = [
     TimeSeries,
     WideTimeSeries,
     wrap_contract,
+    Price,
 ]
