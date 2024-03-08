@@ -38,7 +38,7 @@ class _ContractMetricExporterBase(_ContractMetricProcessorBase, _TimeSeriesExpor
         return await asyncio.gather(*[self.datastore.data_exists(field.address, field.key, ts) for field in self.query.metrics])
 
     async def ensure_data(self, ts: datetime) -> None:
-        if semaphore := self.semaphore:
+        if semaphore := self._semaphore:
             async with semaphore[0-ts.timestamp()]:
                 await self._ensure_data(ts)
         else:

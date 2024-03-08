@@ -38,7 +38,7 @@ class _ContractMetricProcessorBase(_TimeSeriesProcessorBase):
     def __repr__(self) -> str:
         return f"<{type(self).__name__} for {self.query}>"
     @cached_property
-    def semaphore(self) -> Optional[a_sync.PrioritySemaphore]:
+    def _semaphore(self) -> Optional[a_sync.PrioritySemaphore]:
         if self._semaphore_value:
             return a_sync.PrioritySemaphore(self._semaphore_value, name=self.__class__.__name__)
         return None
@@ -54,7 +54,7 @@ class _ContractMetricProcessorBase(_TimeSeriesProcessorBase):
     async def produce(self, timestamp: datetime) -> TimeDataRow:
         # NOTE: we fetch this before we enter the semaphore to ensure its cached in memory when we need to use it and we dont block unnecessarily
         block = await utils.get_block_at_timestamp(timestamp)
-        if semaphore := self.semaphore: 
+        if semaphore := self._semaphore: 
             async with semaphore[0 - timestamp.timestamp()]:
                 return await self._produce(timestamp)
         else:
