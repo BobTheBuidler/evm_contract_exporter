@@ -20,12 +20,14 @@ class ContractExporterBase(a_sync.ASyncGenericBase):
         chainid: int, 
         *, 
         interval: timedelta = timedelta(days=1), 
-        buffer: timedelta = timedelta(minutes=5),
+        buffer: Optional[timedelta] = None,
         datastore: Optional[GenericContractTimeSeriesKeyValueStore] = None,
         sync: bool = True,
     ) -> None:
         self.chainid = chainid
         self.interval = interval
+        if buffer:
+            raise NotImplementedError('buffer')
         self.buffer = buffer
         self.datastore = datastore or GenericContractTimeSeriesKeyValueStore.get_for_chain(chainid)
         self.sync = sync

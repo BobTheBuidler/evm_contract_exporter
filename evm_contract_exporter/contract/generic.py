@@ -31,7 +31,7 @@ class GenericContractExporter(ContractExporterBase):
         contract: Address, 
         *, 
         interval: timedelta = timedelta(days=1), 
-        buffer: timedelta = timedelta(minutes=5),
+        buffer: Optional[timedelta] = None,
         datastore: Optional[GenericContractTimeSeriesKeyValueStore] = None,
         semaphore_value: Optional[int] = 100,
         sync: bool = True
