@@ -7,15 +7,17 @@ from decimal import Decimal, InvalidOperation
 from functools import cached_property
 from typing import Any, Dict, List, Optional, Tuple, Type, Union, overload
 
+import generic_exporters
 import inflection
 from async_lru import alru_cache
+from brownie import convert
 from brownie.convert.datatypes import ReturnValue
 from brownie.network.contract import ContractCall
 from datetime import timedelta
-from generic_exporters import Metric, TimeSeries
 from y import ERC20, get_block_at_timestamp
 
 from evm_contract_exporter import _exceptions, _math, scale, types, utils
+from evm_contract_exporter.timeseries import TimeSeries
 
 
 TUPLE_TYPE = tuple
@@ -23,7 +25,23 @@ ARRAY_TYPE = list
 
 logger = logging.getLogger(__name__)
 
-class _ContractCallMetricBase(Metric):
+
+# NOTE: is this needed? 
+class _MetricBase(generic_exporters.Metric):
+    @abstractproperty
+    def address(self) -> types.address:
+        ...
+
+class Metric(_MetricBase):
+    """This helper class is a `Metric` object that relates to a specific wallet address"""
+    def __init__(self, address: types.address) -> None:
+        super().__init__()
+        self.__address = types.address(convert.to_address(address))
+    @property
+    def address(self) -> types.address:
+        return self.__address
+
+class _ContractCallMetricBase(_MetricBase):
     """A base class for any `Metric` that returns the response from a contract call, or one of its values if multiple are returned"""
     __math_classes__ = _math.classes
     @cached_property
@@ -53,7 +71,7 @@ class _ContractCallMetricBase(Metric):
         elif self._scale is True:
             return Decimal(await ERC20(self.address, asynchronous=True).scale)
         elif isinstance(self._scale, scale.Scale):
-            return await self._scale.produce(None)
+            return await self._scale.produce(None)  # type: ignore [arg-type]
         return Decimal(self._scale)
     @abstractproperty
     def address(self) -> types.address:
@@ -70,7 +88,7 @@ class ContractCallMetric(ContractCall, _ContractCallMetricBase):
     """A hybrid between a `ContractCall` and a `Metric`. Will function as you would expect from any `ContractCall` object, but can also be used as an exportable `Metric` in `evm_contract_exporter`"""
     def __init__(self, original_call: ContractCall, *args, scale: Union[bool, int, scale.Scale] = False, key: str = '') -> None:
         super().__init__(original_call._address, original_call.abi, original_call._name, original_call._owner, original_call.natspec)
-        Metric.__init__(self)
+        _MetricBase.__init__(self)
         if not isinstance(original_call, ContractCall):
             raise TypeError(f'`original_call` must be `ContractCall`. You passed {original_call}')
         self._original_call = original_call

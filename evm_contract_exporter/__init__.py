@@ -1,9 +1,9 @@
 
-from generic_exporters import Constant, Metric
+from generic_exporters import Constant
 
 from evm_contract_exporter.contract import GenericContractExporter, ContractExporterBase
 from evm_contract_exporter.exporters import ContractMetricExporter, ViewMethodExporter
-from evm_contract_exporter.metric import ContractCallMetric
+from evm_contract_exporter.metric import ContractCallMetric, Metric
 from evm_contract_exporter.scale import Scale, SmartScale
 from evm_contract_exporter.timeseries import TimeSeries, WideTimeSeries
 from evm_contract_exporter.utils import wrap_contract
