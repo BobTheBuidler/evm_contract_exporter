@@ -3,10 +3,9 @@ from datetime import datetime
 from typing import TYPE_CHECKING
 
 import a_sync
+import dank_mids
 import y
-from brownie.network.contract import ContractCall
-from dank_mids.brownie_patch.contract import patch_contract
-from y.utils.dank_mids import dank_w3
+from brownie.network.contract import Contract, ContractCall
 
 from evm_contract_exporter import types
 
@@ -23,12 +22,13 @@ async def get_block_at_timestamp(timestamp: datetime) -> int:
 
 @a_sync.Semaphore(100, "deploy block semaphore")
 async def get_deploy_block(contract: types.address) -> int:
+    """return the deploy block of `contract`"""
     return await y.contract_creation_block_async(contract)
 
-def wrap_contract(contract: y.Contract, scale: "Scaley" = True) -> y.Contract:
+def wrap_contract(contract: Contract, scale: "Scaley" = True) -> y.Contract:
     """Converts all `ContractCall` objects in `contract.__dict__` to `ContractCallMetric` objects with more functionality"""
     from evm_contract_exporter.metric import ContractCallMetric
-    contract = patch_contract(contract, dank_w3)
+    contract = dank_mids.patch_contract(contract)
     for k, v in contract.__dict__.items():
         if isinstance(v, ContractCall):
             # we cant use setattr here because brownie raises some error
