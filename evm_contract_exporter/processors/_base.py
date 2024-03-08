@@ -32,7 +32,7 @@ class _ContractMetricProcessorBase(_TimeSeriesProcessorBase):
             raise ValueError("all metrics must share an address")
         if semaphore_value is not None and not isinstance(semaphore_value, int):
             raise TypeError(f"`semaphore_value` must be int or None. You passed {semaphore_value}")
-        super().__init__(query, sync=sync)
+        _TimeSeriesProcessorBase.__init__(self, query, sync=sync)
         self.chainid = chainid
         self._semaphore_value = semaphore_value
     def __repr__(self) -> str:
