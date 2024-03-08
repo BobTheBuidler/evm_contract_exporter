@@ -1,133 +1,32 @@
 
-import asyncio
 import logging
-from datetime import datetime, timedelta, timezone
-from functools import cached_property
-from typing import List, Optional, Union
+from datetime import timedelta
+from typing import Optional, Union
 
-import a_sync
-import eth_retry
-from brownie.convert.datatypes import ReturnValue
-from generic_exporters import TimeSeriesExporter
-from generic_exporters.plan import TimeDataRow
-from multicall.utils import raise_if_exception_in
-from y.time import get_block_timestamp_async
+from generic_exporters import QueryPlan
 
-from evm_contract_exporter import utils
 from evm_contract_exporter.timeseries import TimeSeries, WideTimeSeries
 from evm_contract_exporter.datastore import GenericContractTimeSeriesKeyValueStore
+from evm_contract_exporter.exporters._base import _ContractMetricExporterBase
 
 
 logger = logging.getLogger(__name__)
 
-
-class ContractMetricExporter(TimeSeriesExporter):
-    datastore: GenericContractTimeSeriesKeyValueStore
-    """A base class to adapt generic_exporter's TimeSeriesExporterBase for evm analysis needs. Inherit from this class to create your bespoke metric exporters."""
+class ContractMetricExporter(_ContractMetricExporterBase):
+    """Use this class to export the history of one or more `Metric` objects to a `datastore` of your choice."""
     def __init__(
         self,
         chainid: int,
         timeseries: Union[TimeSeries, WideTimeSeries],
         *, 
         interval: timedelta = timedelta(days=1), 
-        buffer: timedelta = timedelta(minutes=5),
+        buffer: Optional[timedelta] = None,
         datastore: Optional[GenericContractTimeSeriesKeyValueStore] = None,
         semaphore_value: Optional[int] = None,
         sync: bool = True,
     ) -> None:
-        if datastore is not None and not isinstance(datastore, GenericContractTimeSeriesKeyValueStore):
-            raise TypeError(f"`datastore` must be an instance of `GenericContractTimeSeriesKeyValueStore`, you passed {datastore}")
-        datastore = datastore or GenericContractTimeSeriesKeyValueStore.get_for_chain(chainid)
-        if not len({field.address for field in timeseries.metrics}) == 1:
-            raise ValueError("all metrics must share an address")
-        query = timeseries[self.start_timestamp(sync=False):None:interval]
-        super().__init__(query, datastore, buffer=buffer, sync=sync)
-        if not isinstance(chainid, int):
-            raise TypeError(f"`chainid` must be an integer. You passed {semaphore_value}")
-        self.chainid = chainid
-        if semaphore_value is not None and not isinstance(semaphore_value, int):
-            raise TypeError(f"`semaphore_value` must be int or None. You passed {semaphore_value}")
-        self._semaphore_value = semaphore_value
+        if buffer:
+            raise NotImplementedError('buffer')
+        query: QueryPlan = timeseries[self.start_timestamp(sync=False):None:interval]
+        super().__init__(chainid, query, datastore=datastore, semaphore_value=semaphore_value, sync=sync)
     
-    def __repr__(self) -> str:
-        return f"<{self.__class__.__name__} for {self.query}>"
-    
-    async def data_exists(self, ts: datetime) -> List[bool]:
-        return await asyncio.gather(*[self.datastore.data_exists(field.address, field.key, ts) for field in self.query.metrics])
-
-    async def ensure_data(self, ts: datetime) -> None:
-        if semaphore := self._semaphore:
-            async with semaphore[0-ts.timestamp()]:
-                await self._ensure_data(ts)
-        else:
-            await self._ensure_data(ts)
-
-    @eth_retry.auto_retry
-    async def start_timestamp(self) -> datetime:
-        earliest_deploy_block = min(await asyncio.gather(*[utils.get_deploy_block(field.address) for field in self.query.metrics]))
-        deploy_timestamp = datetime.fromtimestamp(await get_block_timestamp_async(earliest_deploy_block), tz=timezone.utc)
-        iseconds = self.query.interval.total_seconds()
-        rounded_down = datetime.fromtimestamp(deploy_timestamp.timestamp() // iseconds * iseconds, tz=timezone.utc)
-        start_timestamp = rounded_down + self.query.interval
-        logger.debug("rounded %s to %s (interval %s)", deploy_timestamp, start_timestamp, self.query.interval)
-        return start_timestamp
-    
-    async def produce(self, timestamp: datetime) -> TimeDataRow:
-        # NOTE: we fetch this before we enter the semaphore to ensure its cached in memory when we need to use it and we dont block unnecessarily
-        block = await utils.get_block_at_timestamp(timestamp)
-        semaphore = self._semaphore
-        if semaphore: 
-            async with semaphore[0 - timestamp.timestamp()]:
-                return await self._produce(timestamp)
-        else:
-            return await self._produce(timestamp)
-
-    @cached_property
-    def _semaphore(self) -> Optional[a_sync.PrioritySemaphore]:
-        if self._semaphore_value:
-            return a_sync.PrioritySemaphore(self._semaphore_value, name=self.__class__.__name__)
-        return None
-    
-    async def _ensure_data(self, ts: datetime) -> None:
-        exists = await self.data_exists(ts, sync=False)
-        if all(exists):
-            logger.debug('complete data for %s at %s already exists in datastore', self, ts)
-            return
-        elif any(exists):
-            data = await a_sync.gather(
-                {
-                    field: field.produce(ts, sync=False) 
-                    for field, field_exists
-                    in zip(self.query.metrics, exists)
-                    if not field_exists
-                }, 
-                return_exceptions=True,
-            )
-        else:
-            logger.debug('no data exists for %s, exporting...', self)
-            data: TimeDataRow = await self._produce(ts)
-        if data:
-            raise_if_exception_in(
-                await asyncio.gather(
-                    *[
-                        self.datastore.push(field.address, field.key, ts, value) 
-                        for field, value in data.items() 
-                        if value is not None
-                        # TODO: find where these are comign from and stop them earlier
-                        and not isinstance(value, ReturnValue)
-                    ],
-                    return_exceptions=True,
-                )
-            )
-            for field, value in data.items():
-                if isinstance(value, ReturnValue):
-                    raise TypeError(field, field._output_type, value)
-
-    
-    async def _produce(self, timestamp: datetime) -> TimeDataRow:
-        block = await utils.get_block_at_timestamp(timestamp)
-        logger.debug("%s producing %s block %s", self, timestamp, block)
-        # NOTE: only works with one field for now
-        retval = await self.query[timestamp]
-        logger.debug("%s produced %s at %s block %s", self, retval, timestamp, block)
-        return retval
