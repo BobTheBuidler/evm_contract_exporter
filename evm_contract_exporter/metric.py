@@ -56,10 +56,10 @@ class _ContractCallMetricBase(Metric):
             return await self._scale.produce(None)
         return Decimal(self._scale)
     @abstractproperty
-    def address(self) -> int:
+    def address(self) -> types.address:
         """Returns the address of the contract with the `decimals` method we will use to calculate the scale when autoscaling is enabled"""
     @abstractproperty
-    def _scale(self) -> int:
+    def _scale(self) -> Union[bool, int, scale.Scale]:
         """Returns your subclass implementation's scaling specification for this `_ScaledContractMetricBase`"""
     @abstractproperty
     def _output_type(self) -> Type:
@@ -87,7 +87,7 @@ class ContractCallMetric(ContractCall, _ContractCallMetricBase):
         cut = 1+len(type(self).__name__)
         return orig[:cut] + f" {self.address}" + orig[cut:]
     @property
-    def address(self) -> str:
+    def address(self) -> types.address:
         """Returns the address associated with the `ContractCall` used to init this `ContractCallMetric`. This is the address that will be queried on-chain when computing this `ContractCallMetric`."""
         return self._address
     @property

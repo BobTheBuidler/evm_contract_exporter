@@ -8,11 +8,11 @@ from brownie.network.contract import _ContractMethod
 
 from generic_exporters.timeseries import _WideTimeSeries, WideTimeSeries
 
-from evm_contract_exporter._address import ContractCallTimeSeries
 from evm_contract_exporter.datastore import GenericContractTimeSeriesKeyValueStore
 from evm_contract_exporter.exporters.metric import ContractMetricExporter
 from evm_contract_exporter.metric import ContractCallDerivedMetric, ContractCallMetric
 from evm_contract_exporter.scale import Scale
+from evm_contract_exporter.timeseries import ContractCallTimeSeries
 
 logger = logging.getLogger(__name__)
 

@@ -10,12 +10,11 @@ import eth_retry
 from brownie.convert.datatypes import ReturnValue
 from generic_exporters import TimeSeriesExporter
 from generic_exporters.plan import TimeDataRow
-from generic_exporters.timeseries import _WideTimeSeries
 from multicall.utils import raise_if_exception_in
 from y.time import get_block_timestamp_async
 
 from evm_contract_exporter import utils
-from evm_contract_exporter._address import _AddressKeyedTimeSeries
+from evm_contract_exporter.timeseries import TimeSeries, WideTimeSeries
 from evm_contract_exporter.datastore import GenericContractTimeSeriesKeyValueStore
 
 
@@ -28,7 +27,7 @@ class ContractMetricExporter(TimeSeriesExporter):
     def __init__(
         self,
         chainid: int,
-        timeseries: Union[_AddressKeyedTimeSeries, _WideTimeSeries[_AddressKeyedTimeSeries]],
+        timeseries: Union[TimeSeries, WideTimeSeries],
         *, 
         interval: timedelta = timedelta(days=1), 
         buffer: timedelta = timedelta(minutes=5),
