@@ -4,10 +4,11 @@ import logging
 from datetime import datetime
 from decimal import Decimal
 from functools import lru_cache
-from os import mkdir, path
+from os import mkdir
 
 from pony.orm import Database, LongStr, ObjectNotFound, Optional, PrimaryKey, Required, Set, TransactionIntegrityError, commit
 
+from evm_contract_exporter import ENVIRONMENT_VARIABLES as ENVS
 from evm_contract_exporter import types
 from evm_contract_exporter.db.common import db_session, write_threads
 
@@ -94,11 +95,10 @@ class ContractDataTimeSeriesKV(db.Entity):
     blockno = Required(int)
     value = Required(Decimal)
 
-# TODO: make configurable
-def _ensure_default_storage_path_exists() -> None:
+
+def _ensure_storage_path_exists(sqlite_path: str) -> None:
     try:
-        lib_storage_dir = f"{path.expanduser( '~' )}/.evm_contract_exporter"
-        mkdir(lib_storage_dir)
+        mkdir(sqlite_path)
         #mkdir(f"{lib_storage_dir}/grafana_data")
         #mkdir(f"{lib_storage_dir}/grafana_provisioning")
     except OSError as e:
@@ -106,11 +106,14 @@ def _ensure_default_storage_path_exists() -> None:
             raise
 
 # TODO: make configurable
-_ensure_default_storage_path_exists()
-db.bind(
-    provider = "sqlite",
-    filename = f"{path.expanduser( '~' )}/.evm_contract_exporter/evm_contract_exporter.sqlite",
-    create_db = True,
-)
+if ENVS.DB_PROVIDER == "sqlite":
+    _ensure_storage_path_exists(ENVS.SQLITE_PATH)  # type: ignore [arg-type]
+    db.bind(
+        provider = "sqlite",
+        filename = f"{ENVS.SQLITE_PATH}/evm_contract_exporter.sqlite",
+        create_db = True,
+    )
+else:
+    raise NotImplementedError(ENVS.DB_PROVIDER)
 
 db.generate_mapping(create_tables=True)
