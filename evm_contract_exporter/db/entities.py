@@ -3,9 +3,10 @@ import errno
 import logging
 from datetime import datetime
 from decimal import Decimal
+from functools import lru_cache
 from os import mkdir, path
 
-from pony.orm import Database, LongStr, ObjectNotFound, Optional, PrimaryKey, Required, Set, commit
+from pony.orm import Database, LongStr, ObjectNotFound, Optional, PrimaryKey, Required, Set, TransactionIntegrityError, commit
 
 from evm_contract_exporter import types
 from evm_contract_exporter.db.common import db_session, write_threads
@@ -39,10 +40,15 @@ class Address(db.Entity):
             return False
     
     @classmethod
+    @lru_cache(maxsize=500)
     @db_session
     def insert_entity(cls, *args, **kwargs) -> None: #chainid: int, address: address, name: str, symbol: str, decimals: int) -> None:
-        entity = cls(*args, **kwargs)
-        commit()
+        try:
+            entity = cls(*args, **kwargs)
+            commit()
+        except TransactionIntegrityError:
+            logger.debug("another thread has already added %s ")
+            return
         if isinstance(entity, Token):
             logger.debug("New token %s found: %s %s", kwargs['symbol'], entity, kwargs['name'])
         else:
