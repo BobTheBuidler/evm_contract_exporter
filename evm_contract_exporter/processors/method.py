@@ -1,16 +1,14 @@
 
 from datetime import timedelta
-from typing import List, Optional, Union
+from typing import Optional, Tuple, Union
 
 from brownie import chain
 from brownie.network.contract import _ContractMethod
 
-from generic_exporters.timeseries import _WideTimeSeries, WideTimeSeries
-
 from evm_contract_exporter.metric import ContractCallDerivedMetric, ContractCallMetric
 from evm_contract_exporter.processors._base import _ContractMetricProcessorBase
 from evm_contract_exporter.scale import Scale
-from evm_contract_exporter.timeseries import ContractCallTimeSeries
+from evm_contract_exporter.timeseries import ContractCallTimeSeries, WideTimeSeries
 
 
 Method = Union[_ContractMethod, ContractCallMetric, ContractCallDerivedMetric]
@@ -41,7 +39,7 @@ def _validate_scale(scale: Scaley) -> None:
     elif not str(scale).endswith('00'): # NOTE: we assume tokens with decimal 1 are shit
         raise ValueError("you must provided the scaled decimal value, not the return value from decimals()")
     
-def _wrap_methods(methods: List[Method], scale: Scaley) -> Union[ContractCallTimeSeries, _WideTimeSeries[ContractCallTimeSeries]]:
+def _wrap_methods(methods: Tuple[Method, ...], scale: Scaley) -> Union[ContractCallTimeSeries, WideTimeSeries]:
     if len(methods) == 0:
         raise ValueError("you must provide one or more methods")
     if len(methods) == 1:

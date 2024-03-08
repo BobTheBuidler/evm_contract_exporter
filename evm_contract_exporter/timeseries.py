@@ -1,6 +1,7 @@
 
 from typing import TYPE_CHECKING, Union, final
 
+import generic_exporters
 from generic_exporters.timeseries import _WideTimeSeries
 
 from evm_contract_exporter import types
