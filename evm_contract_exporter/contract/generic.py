@@ -1,5 +1,4 @@
 
-
 import asyncio
 import logging
 from datetime import timedelta
@@ -15,6 +14,7 @@ from y.datatypes import Address
 from evm_contract_exporter.contract import ContractExporterBase
 from evm_contract_exporter.datastore import GenericContractTimeSeriesKeyValueStore
 from evm_contract_exporter.exporters.method import ViewMethodExporter
+from evm_contract_exporter.processors.method import _wrap_method
 from evm_contract_exporter.metric import AnyContractCallMetric, StructDerivedMetric, TupleDerivedMetric
 from evm_contract_exporter.types import EXPORTABLE_TYPES, UNEXPORTABLE_TYPES, address
 
@@ -171,7 +171,6 @@ def unpack(metric: AnyContractCallMetric) -> List[AnyContractCallMetric]:
     If `metric` returns multiple values, we can't export it. We need to derive new metrics to represent each field.
     returns a list of exportable metrics derived from input `metric`
     """
-    from evm_contract_exporter.exporters.method import _wrap_method
     timeseries = _wrap_method(metric, True)
     unpacked = []
     if timeseries.metric._returns_tuple_type:
