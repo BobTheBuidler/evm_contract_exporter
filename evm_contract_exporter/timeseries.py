@@ -46,4 +46,4 @@ class WideTimeSeries(_WideTimeSeries[SingleProcessable]):
         for x in timeserieses:
             if not isinstance(x, (TimeSeries, _MetricBase)):
                 raise TypeError(f"`x` must be a `TimeSeries` or a `Metric` object. You passed {x}")
-        super().__init__(*(TimeSeries(x) for x in timeserieses if isinstance(x, _MetricBase)), sync=sync)
+        super().__init__(*(TimeSeries(x) if isinstance(x, _MetricBase) else x for x in timeserieses), sync=sync)
