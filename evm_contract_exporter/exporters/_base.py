@@ -6,8 +6,7 @@ from typing import List, Optional
 
 import a_sync
 from brownie.convert.datatypes import ReturnValue
-from generic_exporters import QueryPlan
-from generic_exporters.processors.exporters._base import _TimeSeriesExporterBase
+from generic_exporters import QueryPlan, TimeSeriesExporter
 from generic_exporters.plan import TimeDataRow
 from multicall.utils import raise_if_exception_in
 
@@ -17,7 +16,7 @@ from evm_contract_exporter.processors._base import _ContractMetricProcessorBase
 
 logger = logging.getLogger(__name__)
 
-class _ContractMetricExporterBase(_ContractMetricProcessorBase, _TimeSeriesExporterBase):
+class _ContractMetricExporterBase(_ContractMetricProcessorBase, TimeSeriesExporter):
     """A base class to adapt generic_exporter's `_TimeSeriesExporterBase` for evm analysis needs. Inherit from this class to create your bespoke metric exporters."""
     datastore: GenericContractTimeSeriesKeyValueStore
     def __init__(
