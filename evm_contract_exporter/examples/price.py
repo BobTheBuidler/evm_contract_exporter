@@ -37,7 +37,7 @@ class PriceExporter(ContractMetricExporter):
         self, 
         *addresses: types.address, 
         interval: timedelta = timedelta(days=1), 
-        buffer: timedelta = timedelta(minutes=5), 
+        buffer: Optional[timedelta] = None, 
         datastore: Optional[GenericContractTimeSeriesKeyValueStore] = None, 
         semaphore_value: Optional[int] = None, 
         sync: bool = True,
