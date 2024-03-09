@@ -12,7 +12,7 @@ from evm_contract_exporter.datastore import GenericContractTimeSeriesKeyValueSto
 from evm_contract_exporter import types
 from evm_contract_exporter.exporters import ContractMetricExporter
 from evm_contract_exporter.metric import Metric
-from evm_contract_exporter.timeseries import WideTimeSeries
+from evm_contract_exporter.timeseries import TimeSeries, WideTimeSeries
 
 
 logger = logging.getLogger(__name__)
@@ -43,5 +43,5 @@ class PriceExporter(ContractMetricExporter):
         sync: bool = True,
     ) -> None:
         metrics = [Price(address) for address in addresses]
-        timeseries = WideTimeSeries(*metrics)
+        timeseries = TimeSeries(metrics[0]) if len(metrics) == 1 else WideTimeSeries(*metrics)
         super().__init__(chain.id, timeseries, interval=interval, buffer=buffer, datastore=datastore, semaphore_value=semaphore_value, sync=sync)
