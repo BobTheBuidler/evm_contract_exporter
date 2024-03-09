@@ -93,7 +93,7 @@ class ContractDataTimeSeriesKV(db.Entity):
     PrimaryKey(address, metric, timestamp)
 
     blockno = Required(int)
-    value = Required(Decimal)
+    value = Required(Decimal, scale=38, precision=18)
 
 
 def _ensure_storage_path_exists(sqlite_path: str) -> None:
