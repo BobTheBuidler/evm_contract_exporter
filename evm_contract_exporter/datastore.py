@@ -79,7 +79,9 @@ class GenericContractTimeSeriesKeyValueStore(TimeSeriesDataStoreBase):
                     raise
                 except Exception as e:
                     if len(items) == 1:
-                        self._pending_inserts.pop(items[0]).set_exception(e)
+                        if (item := items[0]) in self._pending_inserts:
+                            # NOTE: why is this not always here?
+                            self._pending_inserts.pop(items[0]).set_exception(e)
                         return
                     logger.info("%s %s when performing bulk insert of length %s", e.__class__.__name__, e, len(items))
                     midpoint = len(items) // 2
