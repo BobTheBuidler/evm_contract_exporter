@@ -177,7 +177,8 @@ class ContractCallMetric(ContractCall, _ContractCallMetricBase):
                         logger.warning("attempted to scale %s, debug!  method: %s  should_scale: %s  output_type: %s  outputs: %s", retval, self._original_call, self._should_scale, self._output_type, self._outputs)
                     else:
                         retval /= await self.get_scale()
-                return retval
+                # Force the db to accept booleans. Sqlite accepts them fine but postgres needs them wrapped.
+                return Decimal(retval) if self._output_type is bool else retval
             except Exception as e:
                 if '429' not in str(e):
                     raise e
