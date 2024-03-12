@@ -7,7 +7,8 @@ from functools import lru_cache
 from os import mkdir
 
 from brownie import chain
-from pony.orm import Database, LongStr, ObjectNotFound, Optional, PrimaryKey, Required, Set, TransactionIntegrityError, commit, db_session
+from pony.orm import (Database, LongStr, ObjectNotFound, Optional, PrimaryKey,
+                      Required, Set, TransactionIntegrityError, commit, db_session, select)
 
 from evm_contract_exporter import ENVIRONMENT_VARIABLES as ENVS
 from evm_contract_exporter import types
