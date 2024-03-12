@@ -122,6 +122,7 @@ SKIP_METHODS = {
     "decimals",
     "eip712Domain",
     "metadata",
+    "MAX_UINT",
     # these numbers are either too big to stuff into the default db or wont scale properly (or both).
     # You can manually do things with these if you need
     "getReserves", 
