@@ -130,4 +130,4 @@ else:
 db.generate_mapping(create_tables=True)
 
 with db_session:
-    known_entities_at_startup = select(a.address for a in Address if a.chainid == chain.id)
+    known_entities_at_startup = select(a.address for a in Address if a.chainid == chain.id)[:]
