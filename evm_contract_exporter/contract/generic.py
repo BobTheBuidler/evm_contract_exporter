@@ -134,6 +134,7 @@ SKIP_METHODS = {
     "reserve0CumulativeLast",
     "reserve1CumulativeLast",
     "lastObservation",
+    "DELEGATE_PROTOCOL_SWAP_FEES_SENTINEL",
 }
 
 def _exportable_return_value_type(function: ContractCall) -> bool:
