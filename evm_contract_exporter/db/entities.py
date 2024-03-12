@@ -6,6 +6,7 @@ from decimal import Decimal
 from functools import lru_cache
 from os import mkdir
 
+from brownie import chain
 from pony.orm import Database, LongStr, ObjectNotFound, Optional, PrimaryKey, Required, Set, TransactionIntegrityError, commit
 
 from evm_contract_exporter import ENVIRONMENT_VARIABLES as ENVS
@@ -126,3 +127,6 @@ else:
     db.bind(**connection_settings)
 
 db.generate_mapping(create_tables=True)
+
+with db_session:
+    known_entities_at_startup = select(a.address for a in Address if a.chainid == chain.id)

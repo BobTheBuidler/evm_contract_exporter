@@ -170,7 +170,7 @@ def _timestamps_present(chainid: int, address: types.address) -> Dict[str, List[
 _entity_semaphore = a_sync.Semaphore(5_000, name='evm_contract_exporter entity semaphore')
 
 async def _ensure_entity(address: types.address) -> None:
-    if await db.read_threads.run(db.Contract.entity_exists, chain.id, address):
+    if address in db.known_entities_at_startup or await db.read_threads.run(db.Contract.entity_exists, chain.id, address):
         return
     
     kwargs = {'chainid': chain.id, 'address': address}
