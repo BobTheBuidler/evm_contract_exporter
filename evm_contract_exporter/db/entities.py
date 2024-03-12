@@ -7,11 +7,11 @@ from functools import lru_cache
 from os import mkdir
 
 from brownie import chain
-from pony.orm import Database, LongStr, ObjectNotFound, Optional, PrimaryKey, Required, Set, TransactionIntegrityError, commit
+from pony.orm import Database, LongStr, ObjectNotFound, Optional, PrimaryKey, Required, Set, TransactionIntegrityError, commit, db_session
 
 from evm_contract_exporter import ENVIRONMENT_VARIABLES as ENVS
 from evm_contract_exporter import types
-from evm_contract_exporter.db.common import db_session, write_threads
+from evm_contract_exporter.db import common
 
 
 logger = logging.getLogger(__name__)
@@ -31,7 +31,7 @@ class Address(db.Entity):
     time_series_kv_data = Set("ContractDataTimeSeriesKV")
 
     @classmethod
-    @db_session
+    @common.db_session
     def entity_exists(cls, chainid: int, address: types.address) -> bool:
         try:
             cls[chainid, address]
@@ -43,7 +43,7 @@ class Address(db.Entity):
     
     @classmethod
     @lru_cache(maxsize=500)
-    @db_session
+    @common.db_session
     def insert_entity(cls, *args, **kwargs) -> None: #chainid: int, address: address, name: str, symbol: str, decimals: int) -> None:
         try:
             entity = cls(*args, **kwargs)
@@ -67,10 +67,10 @@ class Contract(Address):
 
     @classmethod
     async def set_non_verified(cls, chainid: int, address: str) -> None:
-        await write_threads.run(cls._set_non_verified, chainid, address)
+        await common.write_threads.run(cls._set_non_verified, chainid, address)
 
     @classmethod
-    @db_session
+    @common.db_session
     def _set_non_verified(cls, chainid: int, address: str) -> None:
         entity = cls[chainid, address]
         entity.is_verified = False
