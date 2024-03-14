@@ -54,7 +54,7 @@ class _ContractMetricExporterBase(_ContractMetricProcessorBase, TimeSeriesExport
             data: AsyncIterable[Tuple[Metric, Decimal]] = a_sync.as_completed(coros, return_exceptions=True, aiter=True)
         else:
             logger.debug('no data exists for %s, exporting...', self)
-            data = self.query[ts].tasks
+            data = a_sync.as_completed(self.query[ts].tasks, return_exceptions=True, aiter=True)
         insert_tasks = {}
         async for metric, result in data:
             if isinstance(result, ReturnValue):
