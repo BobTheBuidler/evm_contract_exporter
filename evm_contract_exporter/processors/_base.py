@@ -2,17 +2,18 @@
 import asyncio
 import logging
 from datetime import datetime, timezone
+from decimal import Decimal
 from functools import cached_property
-from typing import Optional
+from typing import Dict, Optional
 
 import a_sync
 import eth_retry
 from generic_exporters import QueryPlan
 from generic_exporters.processors._base import _TimeSeriesProcessorBase
-from generic_exporters.plan import TimeDataRow
 from y.time import get_block_timestamp_async
 
 from evm_contract_exporter import utils
+from evm_contract_exporter.metric import Metric
 
 
 logger = logging.getLogger(__name__)
@@ -51,7 +52,7 @@ class _ContractMetricProcessorBase(_TimeSeriesProcessorBase):
         start_timestamp = rounded_down + self.query.interval
         logger.debug("rounded %s to %s (interval %s)", deploy_timestamp, start_timestamp, self.query.interval)
         return start_timestamp
-    async def produce(self, timestamp: datetime) -> TimeDataRow:
+    async def produce(self, timestamp: datetime) -> Dict[Metric, Decimal]:
         # NOTE: we fetch this before we enter the semaphore to ensure its cached in memory when we need to use it and we dont block unnecessarily
         block = await utils.get_block_at_timestamp(timestamp)
         if semaphore := self._semaphore: 
@@ -59,7 +60,7 @@ class _ContractMetricProcessorBase(_TimeSeriesProcessorBase):
                 return await self._produce(timestamp)
         else:
             return await self._produce(timestamp)
-    async def _produce(self, timestamp: datetime) -> TimeDataRow:
+    async def _produce(self, timestamp: datetime) -> Dict[Metric, Decimal]:
         block = await utils.get_block_at_timestamp(timestamp)
         logger.debug("%s producing %s block %s", self, timestamp, block)
         # NOTE: only works with one field for now
