@@ -38,6 +38,7 @@ EXPORTABLE_TYPES: Dict[str, Type] = {
     "int128": int128,
     "int160": int160,
     "int192": int192,
+    "int216": int216,
     "int224": int224,
     "int256": int256,
     "uint8": uint8,
@@ -53,6 +54,7 @@ EXPORTABLE_TYPES: Dict[str, Type] = {
     "uint128": uint128,
     "uint160": uint160,
     "uint192": uint192,
+    "uint216": uint216,
     "uint224": uint224,
     "uint256": uint256,
 }
