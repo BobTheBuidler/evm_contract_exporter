@@ -43,4 +43,9 @@ async def start_deploy_block_workers() -> List["asyncio.Task[NoReturn]"]:
 async def _deploy_block_worker() -> NoReturn:
     while True:
         contract_address = await _deploy_block_queue.get()
-        await y.contract_creation_block_async(contract_address)
+        try:
+            await y.contract_creation_block_async(contract_address)
+        except Exception as e:
+            # the exception will raise later on, we can ignore it
+            pass
+        _deploy_block_queue.task_done()
