@@ -1,10 +1,12 @@
 
+import asyncio
 from datetime import datetime
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, List, NoReturn
 
 import a_sync
 import dank_mids
 import y
+from async_lru import alru_cache
 from brownie.network.contract import Contract, ContractCall
 
 from evm_contract_exporter import types
@@ -12,18 +14,16 @@ from evm_contract_exporter import types
 if TYPE_CHECKING:
     from evm_contract_exporter.exporters.method import Scaley
 
+BLOCK_AT_TIMESTAMP_CONCURRENCY = 500
+DEPLOY_BLOCK_CONCURRENCY = 100
 
-_block_timestamp_semaphore = a_sync.PrioritySemaphore(500, name="block for timestamp semaphore")
+_deploy_block_queue: a_sync.Queue[types.address] = a_sync.Queue()
+_block_timestamp_semaphore = a_sync.PrioritySemaphore(BLOCK_AT_TIMESTAMP_CONCURRENCY, name="block for timestamp semaphore")
 
 async def get_block_at_timestamp(timestamp: datetime) -> int:
     """Returns the number of the last block minted before the exact moment of `timestamp`"""
     async with _block_timestamp_semaphore[0 - timestamp.timestamp()]:  # NOTE: We invert the priority to go high-to-low so we can get more recent data more quickly
         return await y.get_block_at_timestamp(timestamp)
-
-@a_sync.Semaphore(100, "deploy block semaphore")
-async def get_deploy_block(contract: types.address) -> int:
-    """return the deploy block of `contract`"""
-    return await y.contract_creation_block_async(contract)
 
 def wrap_contract(contract: Contract, scale: "Scaley" = True) -> y.Contract:
     """Converts all `ContractCall` objects in `contract.__dict__` to `ContractCallMetric` objects with more functionality"""
@@ -35,3 +35,12 @@ def wrap_contract(contract: Contract, scale: "Scaley" = True) -> y.Contract:
             # lets hack our way around that right quick
             object.__setattr__(contract, k, ContractCallMetric(v, scale=scale))
     return contract
+
+@alru_cache(maxsize=1)
+async def start_deploy_block_workers() -> List["asyncio.Task[NoReturn]"]:
+    return [asyncio.create_task(_deploy_block_worker()) for _ in range(DEPLOY_BLOCK_CONCURRENCY)]
+
+async def _deploy_block_worker() -> NoReturn:
+    while True:
+        contract_address = await _deploy_block_queue.get()
+        await y.contract_creation_block_async(contract_address)
