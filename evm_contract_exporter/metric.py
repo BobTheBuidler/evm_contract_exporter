@@ -170,7 +170,7 @@ class ContractCallMetric(ContractCall, _ContractCallMetricBase):
     async def __produce(self, timestamp: datetime) -> Decimal:
         while True:
             try:
-                block = await utils.get_block_at_timestamp(timestamp)
+                block = await get_block_at_timestamp(timestamp)
                 retval = await self.coroutine(*self._args, block_identifier=block)
                 if self._should_scale:
                     if isinstance(retval, ReturnValue):

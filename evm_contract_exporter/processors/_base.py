@@ -10,6 +10,7 @@ import a_sync
 import eth_retry
 from generic_exporters import QueryPlan
 from generic_exporters.processors._base import _TimeSeriesProcessorBase
+from y import get_block_at_timestamp
 from y.time import get_block_timestamp_async
 
 from evm_contract_exporter import utils
@@ -54,14 +55,14 @@ class _ContractMetricProcessorBase(_TimeSeriesProcessorBase):
         return start_timestamp
     async def produce(self, timestamp: datetime) -> Dict[Metric, Decimal]:
         # NOTE: we fetch this before we enter the semaphore to ensure its cached in memory when we need to use it and we dont block unnecessarily
-        block = await utils.get_block_at_timestamp(timestamp)
+        await utils.get_block_at_timestamp(timestamp)
         if semaphore := self._semaphore: 
             async with semaphore[0 - timestamp.timestamp()]:
                 return await self._produce(timestamp)
         else:
             return await self._produce(timestamp)
     async def _produce(self, timestamp: datetime) -> Dict[Metric, Decimal]:
-        block = await utils.get_block_at_timestamp(timestamp)
+        block = await get_block_at_timestamp(timestamp)
         logger.debug("%s producing %s block %s", self, timestamp, block)
         # NOTE: only works with one field for now
         retval = await self.query[timestamp]

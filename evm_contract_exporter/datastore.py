@@ -18,14 +18,13 @@ from generic_exporters.processors.exporters.datastores.timeseries._base import T
 from msgspec import Struct
 from pony.orm import select
 from typing_extensions import Self
-from y import ERC20, Network, NonStandardERC20
+from y import ERC20, Network, NonStandardERC20, get_block_at_timestamp
 from y._db.utils import bulk
 from y.contracts import is_contract
 from y.prices.dex.uniswap.v2 import UniswapV2Pool
 
 from evm_contract_exporter import _exceptions, db, types
 from evm_contract_exporter._exceptions import FixMe
-from evm_contract_exporter.utils import get_block_at_timestamp
 
 
 logger = logging.getLogger(__name__)
@@ -93,7 +92,7 @@ class GenericContractTimeSeriesKeyValueStore(TimeSeriesDataStoreBase):
         return f"<{self.__class__.__name__} chainid={self.chainid}>"
     
     async def data_exists(self, address: types.address, key: str, ts: datetime) -> bool:
-        """Returns True if `key` returns results from your Postgres db at `ts`, False if not."""
+        """Returns True if `key` returns results from your Postgres db for `address` at `ts`, False if not."""
         timestamps_present = await get_cached_timestamps(self.chainid, address, key)
         if ts in timestamps_present:
             logger.debug('%s %s %s %s exists', self.chainid, address, key, ts)
@@ -103,6 +102,7 @@ class GenericContractTimeSeriesKeyValueStore(TimeSeriesDataStoreBase):
     
     async def push(self, address: types.address, key: Any, ts: datetime, value: "ReturnValue", metric: Optional[Metric] = None) -> None:
         """Exports `data` to Victoria Metrics using `key` somehow. lol"""
+        # NOTE: we know by this point in the code execution, the block is already in memory and don't need to use our helper util
         block = await get_block_at_timestamp(ts)
         if isinstance(value, Exception):
             if not _exceptions._is_revert(value):
@@ -135,12 +135,14 @@ class GenericContractTimeSeriesKeyValueStore(TimeSeriesDataStoreBase):
             self._exc = e
             raise e
 
-async def get_cached_timestamps(chainid: int, address: types.address, key: str) -> Dict[str, List[datetime]]:
+async def get_cached_timestamps(chainid: int, address: types.address, key: str) -> List[datetime]:
+    """return a list of all timestamps currently present for `key` for `address` on chain `chainid`"""
     timestamps = await get_cached_datapoints_for_address(chainid, address)
     return timestamps[key]
 
 @alru_cache(maxsize=None, ttl=300)
 async def get_cached_datapoints_for_address(chainid: int, address: types.address) -> Dict[str, List[datetime]]:
+    """query a dict {key: [datetime(...), datetime(...)]} which contains all timestamps currently present for each known metric for `address` on chain `chainid`"""
     await _ensure_entity(address)
     timestamps = await db.read_threads.run(_timestamps_present, chainid, address)
     logger.debug("timestamps found for %s on %s: %s", address, Network(chainid), {k: len(v) for k, v in timestamps.items()})
@@ -148,6 +150,7 @@ async def get_cached_datapoints_for_address(chainid: int, address: types.address
 
 @db.session
 def _timestamps_present(chainid: int, address: types.address) -> Dict[str, List[datetime]]:
+    """query a dict {key: [datetime(...), datetime(...)]} which contains all timestamps currently present for each known metric for `address` on chain `chainid`"""
     query = select(
         (d.metric, d.timestamp)
         for d in db.ContractDataTimeSeriesKV 
@@ -166,10 +169,11 @@ def _timestamps_present(chainid: int, address: types.address) -> Dict[str, List[
             raise TypeError(datetimedata)
     return present
 
-
 _entity_semaphore = a_sync.Semaphore(5_000, name='evm_contract_exporter entity semaphore')
+"""an `a_sync.Semaphore` used to limit concurrency of `_ensure_entity` so not to block the threadpools"""
 
 async def _ensure_entity(address: types.address) -> None:
+    """Ensure `address` is associated with an object in the database"""
     if address in db.known_entities_at_startup or await db.read_threads.run(db.Contract.entity_exists, chain.id, address):
         return
     
