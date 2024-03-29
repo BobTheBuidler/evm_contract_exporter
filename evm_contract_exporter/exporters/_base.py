@@ -67,4 +67,5 @@ class _ContractMetricExporterBase(_ContractMetricProcessorBase, TimeSeriesExport
                 # TODO: backport None support
                 continue
             insert_tasks[metric] = asyncio.create_task(self.datastore.push(metric.address, metric.key, ts, result))
-        raise_if_exception_in(await a_sync.gather(insert_tasks, return_exceptions=True))
+        insert_results = await a_sync.gather(insert_tasks, return_exceptions=True)
+        raise_if_exception_in(insert_results.values())
