@@ -43,9 +43,9 @@ class PriceExporter(ContractMetricExporter):
         interval: timedelta = timedelta(days=1), 
         buffer: Optional[timedelta] = None, 
         datastore: Optional[GenericContractTimeSeriesKeyValueStore] = None, 
-        semaphore_value: Optional[int] = None, 
+        concurrency: Optional[int] = None, 
         sync: bool = True,
     ) -> None:
         metrics = [Price(address) for address in addresses]
         timeseries = TimeSeries(metrics[0]) if len(metrics) == 1 else WideTimeSeries(*metrics)
-        super().__init__(chain.id, timeseries, interval=interval, buffer=buffer, datastore=datastore, semaphore_value=semaphore_value, sync=sync)
+        super().__init__(chain.id, timeseries, interval=interval, buffer=buffer, datastore=datastore, concurrency=concurrency, sync=sync)
