@@ -14,9 +14,9 @@ from brownie import convert
 from brownie.convert.datatypes import ReturnValue
 from brownie.network.contract import ContractCall
 from datetime import timedelta
-from y import ERC20, get_block_at_timestamp
+from y import ERC20, contract_creation_block_async, get_block_at_timestamp
 
-from evm_contract_exporter import _exceptions, _math, scale, types, utils
+from evm_contract_exporter import _exceptions, _math, scale, types
 from evm_contract_exporter.timeseries import TimeSeries
 
 
@@ -155,7 +155,7 @@ class ContractCallMetric(ContractCall, _ContractCallMetricBase):
         retval = await self._original_call.coroutine(*args, **kwargs)
         return self._output_type(retval) if self._should_wrap_output else retval
     async def produce(self, timestamp: datetime) -> Optional[Decimal]:
-        if await get_block_at_timestamp(timestamp, sync=False) < await utils.get_deploy_block(self.address):
+        if await get_block_at_timestamp(timestamp, sync=False) < await contract_creation_block_async(self.address):
             logger.debug("%s was not yet deployed at %s", self, timestamp)
             return None
         if self._dependants:
@@ -170,7 +170,7 @@ class ContractCallMetric(ContractCall, _ContractCallMetricBase):
     async def __produce(self, timestamp: datetime) -> Decimal:
         while True:
             try:
-                block = await utils.get_block_at_timestamp(timestamp)
+                block = await get_block_at_timestamp(timestamp)
                 retval = await self.coroutine(*self._args, block_identifier=block)
                 if self._should_scale:
                     if isinstance(retval, ReturnValue):
