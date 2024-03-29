@@ -33,12 +33,12 @@ class GenericContractExporter(ContractExporterBase):
         interval: timedelta = timedelta(days=1), 
         buffer: Optional[timedelta] = None,
         datastore: Optional[GenericContractTimeSeriesKeyValueStore] = None,
-        semaphore_value: Optional[int] = 100,
+        concurrency: Optional[int] = 100,
         sync: bool = True
     ) -> None:
         super().__init__(chain.id, interval=interval, buffer=buffer, datastore=datastore, sync=sync)
         self.address = convert.to_address(contract)
-        self._semaphore_value = semaphore_value
+        self.concurrency = concurrency
     def __repr__(self) -> str:
         return f"<{self.__class__.__name__} contract={self.address} interval={self.interval}>"
     @cached_property
@@ -54,7 +54,7 @@ class GenericContractExporter(ContractExporterBase):
                 interval=self.interval, 
                 buffer=self.buffer, 
                 datastore=self.datastore, 
-                semaphore_value=self._semaphore_value, 
+                concurrency=self.concurrency, 
                 sync=self.sync,
             )
         

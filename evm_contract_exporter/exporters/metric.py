@@ -22,11 +22,11 @@ class ContractMetricExporter(_ContractMetricExporterBase):
         interval: timedelta = timedelta(days=1), 
         buffer: Optional[timedelta] = None,
         datastore: Optional[GenericContractTimeSeriesKeyValueStore] = None,
-        semaphore_value: Optional[int] = None,
+        concurrency: Optional[int] = None,
         sync: bool = True,
     ) -> None:
         if buffer:
             raise NotImplementedError('buffer')
         query: QueryPlan = timeseries[self.start_timestamp(sync=False):None:interval]
-        super().__init__(chainid, query, datastore=datastore, semaphore_value=semaphore_value, sync=sync)
+        super().__init__(chainid, query, datastore=datastore, concurrency=concurrency, sync=sync)
     

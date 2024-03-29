@@ -26,12 +26,12 @@ class _ContractMetricExporterBase(_ContractMetricProcessorBase, TimeSeriesExport
         query_plan: QueryPlan, 
         *,
         datastore: Optional[GenericContractTimeSeriesKeyValueStore] = None, 
-        semaphore_value: Optional[int] = None, 
+        concurrency: Optional[int] = None, 
         sync: bool = True,
     ) -> None:
         if datastore is not None and not isinstance(datastore, GenericContractTimeSeriesKeyValueStore):
             raise TypeError(f"`datastore` must be an instance of `GenericContractTimeSeriesKeyValueStore`, you passed {datastore}")
-        _ContractMetricProcessorBase.__init__(self, chainid, query_plan, semaphore_value=semaphore_value, sync=sync)
+        _ContractMetricProcessorBase.__init__(self, chainid, query_plan, concurrency=concurrency, sync=sync)
         self.datastore = datastore or GenericContractTimeSeriesKeyValueStore.get_for_chain(chainid)
     
     async def data_exists(self, ts: datetime) -> List[bool]:  # type: ignore [override]

@@ -18,7 +18,7 @@ class ViewMethodExporter(ContractMetricExporter):
         buffer: Optional[timedelta] = None, 
         scale: Scaley = False,
         datastore: Optional[GenericContractTimeSeriesKeyValueStore] = None,
-        semaphore_value: Optional[int] = None,
+        concurrency: Optional[int] = None,
         sync: bool = True,
     ) -> None:
         _validate_scale(scale)
@@ -28,6 +28,6 @@ class ViewMethodExporter(ContractMetricExporter):
             interval=interval, 
             buffer=buffer, 
             datastore=datastore, 
-            semaphore_value=semaphore_value, 
+            concurrency=concurrency, 
             sync=sync,
         )
