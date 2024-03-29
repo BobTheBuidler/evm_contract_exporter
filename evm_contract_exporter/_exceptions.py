@@ -1,7 +1,6 @@
 
 from web3.exceptions import ContractLogicError
 
-
 _value_err_reverts = ["No data was returned - the call likely reverted", "Call reverted: Integer overflow"]
 
 def _is_revert(e: Exception) -> bool:
