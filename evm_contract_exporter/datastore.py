@@ -4,7 +4,7 @@ import logging
 from brownie import chain
 from brownie.convert.datatypes import ReturnValue
 from collections import defaultdict
-from datetime import datetime
+from datetime import datetime, timezone
 from dateutil import parser
 from decimal import Decimal, InvalidOperation
 from functools import cached_property, lru_cache
@@ -164,7 +164,7 @@ def _timestamps_present(chainid: int, address: types.address) -> Dict[str, List[
             present[key].append(parser.parse(datetimedata))
         elif isinstance(datetimedata, datetime):
             # when using postgres provider
-            present[key].append(datetimedata)
+            present[key].append(datetimedata.astimezone(timezone.utc))
         else:
             raise TypeError(datetimedata)
     return present
