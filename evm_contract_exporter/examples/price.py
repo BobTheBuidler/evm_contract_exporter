@@ -6,7 +6,7 @@ from typing import Optional
 
 import y
 from brownie import chain
-from y.exceptions import yPriceMagicError
+from y.exceptions import CantFetchParam, yPriceMagicError
 from evm_contract_exporter.datastore import GenericContractTimeSeriesKeyValueStore
 
 from evm_contract_exporter import types
@@ -25,6 +25,9 @@ class Price(Metric):
             raise ValueError(block)
         try:
             price = Decimal(await y.get_price(self.address, block, sync=False))
+        except CantFetchParam:
+            logger.info("%s %s at %s: returning 0 due to CantFetchParam error", self.address, self.key, timestamp)
+            return Decimal(0)
         except yPriceMagicError as e:
             if isinstance(e.exception, y.PriceError):
                 logger.info("%s %s at %s: returning 0 due to PriceError", self.address, self.key, timestamp)
