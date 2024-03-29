@@ -155,7 +155,7 @@ def _timestamps_present(chainid: int, address: types.address) -> Dict[str, List[
         (d.metric, d.timestamp)
         for d in db.ContractDataTimeSeriesKV 
         if d.address.chainid == chainid 
-        and d.address.address == address 
+        and d.address.address == address
     )
     present = defaultdict(list)
     for key, datetimedata in query:
@@ -167,6 +167,7 @@ def _timestamps_present(chainid: int, address: types.address) -> Dict[str, List[
             present[key].append(datetimedata.astimezone(timezone.utc))
         else:
             raise TypeError(datetimedata)
+    logger.debug("timestamps present for %s: %s", address, present)
     return present
 
 _entity_semaphore = a_sync.Semaphore(5_000, name='evm_contract_exporter entity semaphore')
