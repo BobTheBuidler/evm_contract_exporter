@@ -25,24 +25,25 @@ class _ContractMetricProcessorBase(_TimeSeriesProcessorBase):
         chainid: int, 
         query: QueryPlan, 
         *, 
-        semaphore_value: Optional[int] = None, 
+        concurrency: Optional[int] = None, 
         sync: bool = True,
     ) -> None:
         if not isinstance(chainid, int):
             raise TypeError(f"`chainid` must be an integer. You passed {semaphore_value}")
         if not len({field.address for field in query.metrics}) == 1:
             raise ValueError("all metrics must share an address")
-        if semaphore_value is not None and not isinstance(semaphore_value, int):
-            raise TypeError(f"`semaphore_value` must be int or None. You passed {semaphore_value}")
+        if concurrency is not None and not isinstance(concurrency, int):
+            raise TypeError(f"`semaphore_value` must be int or None. You passed {concurrency}")
         _TimeSeriesProcessorBase.__init__(self, query, sync=sync)
         self.chainid = chainid
-        self._semaphore_value = semaphore_value
+        self.concurrency = concurrency
     def __repr__(self) -> str:
         return f"<{type(self).__name__} for {self.query}>"
     @cached_property
     def _semaphore(self) -> Optional[a_sync.PrioritySemaphore]:
-        if self._semaphore_value:
-            return a_sync.PrioritySemaphore(self._semaphore_value, name=self.__class__.__name__)
+        # TODO: refactor this out now that generic_exporters uses Queue for memory management
+        if self.concurrency:
+            return a_sync.PrioritySemaphore(self.concurrency, name=self.__class__.__name__)
         return None
     @eth_retry.auto_retry
     async def start_timestamp(self) -> datetime:
