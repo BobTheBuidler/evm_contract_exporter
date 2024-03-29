@@ -3,7 +3,7 @@ import asyncio
 import logging
 from datetime import datetime
 from decimal import Decimal
-from typing import Any, AsyncIterable, Coroutine, Dict, List, Optional, Tuple
+from typing import Any, AsyncIterable, Coroutine, Dict, List, Optional, Tuple, Union
 
 import a_sync
 from brownie.convert.datatypes import ReturnValue
@@ -51,10 +51,12 @@ class _ContractMetricExporterBase(_ContractMetricProcessorBase, TimeSeriesExport
             return
         elif any(exists):
             coros: Dict[Metric, Coroutine[Any, Any, Decimal]] = {field: field.produce(ts, sync=False) for field, field_exists in zip(self.query.metrics, exists) if not field_exists}
-            data: AsyncIterable[Tuple[Metric, Decimal]] = a_sync.as_completed(coros, return_exceptions=True, aiter=True)
+            data: AsyncIterable[Tuple[Metric, Union[Decimal, Exception]]] = a_sync.as_completed(coros, return_exceptions=True, aiter=True)
         else:
             logger.debug('no data exists for %s, exporting...', self)
-            data = a_sync.as_completed(self.query[ts].tasks, return_exceptions=True, aiter=True)
+            tasks = self.query[ts].tasks
+            await tasks._init_loader
+            data = a_sync.as_completed(tasks, return_exceptions=True, aiter=True)
         insert_tasks = {}
         async for metric, result in data:
             if isinstance(result, ReturnValue):
