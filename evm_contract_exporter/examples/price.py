@@ -23,14 +23,15 @@ class Price(Metric):
         block = await y.get_block_at_timestamp(timestamp)
         if not block:
             raise ValueError(block)
-        retval = await y.get_price(self.address, block, sync=False)
-        if isinstance(retval, yPriceMagicError) and isinstance(retval.exception, y.PriceError):
-            logger.info("%s %s at %s: returning 0 due to PriceError", self.address, self.key, timestamp)
-            return Decimal(0)
-        logger.info("%s %s at %s: %s", self.address, self.key, timestamp, retval)
-        if isinstance(retval, Exception):
-            raise retval
-        return Decimal(retval)
+        try:
+            price = Decimal(await y.get_price(self.address, block, sync=False))
+        except yPriceMagicError as e:
+            if isinstance(e.exception, y.PriceError):
+                logger.info("%s %s at %s: returning 0 due to PriceError", self.address, self.key, timestamp)
+                return Decimal(0)
+            raise e
+        logger.info("%s %s at %s: %s", self.address, self.key, timestamp, price)
+        return price
 
 class PriceExporter(ContractMetricExporter):
     def __init__(
