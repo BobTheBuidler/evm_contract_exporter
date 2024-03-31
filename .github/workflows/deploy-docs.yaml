@@ -5,6 +5,12 @@ on:
     branches:
       - master
 
+# Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
+permissions:
+  contents: write
+  id-token: write
+  pages: write
+  
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
@@ -22,7 +28,7 @@ jobs:
           pip install wheel
           pip install --no-build-isolation "Cython<3" "pyyaml==5.4.1"
           pip install -r requirements.txt
-          pip install sphinx
+          pip install sphinx sphinx-rtd-theme
 
       - name: Build documentation config
         run: |
@@ -39,3 +45,21 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./docs/_build/html
+          
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: gh-pages
+          
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+        
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          # Upload entire repository
+          path: '.'
+          
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
