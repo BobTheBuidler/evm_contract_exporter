@@ -30,6 +30,11 @@ jobs:
           pip install -r requirements.txt
           pip install sphinx sphinx-rtd-theme
 
+      - name: Setup brownie networks
+        run: |
+          brownie networks modify mainnet host=${{ secrets.WEB3_PROVIDER }}
+        continue-on-error: true
+
       - name: Build documentation config
         run: |
           pip install .
@@ -38,7 +43,7 @@ jobs:
       - name: Build documentation
         run: |
           cd docs
-          make html
+          BROWNIE_NETWORK_ID=mainnet make html
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
