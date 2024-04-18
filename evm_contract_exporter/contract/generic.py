@@ -207,7 +207,7 @@ def unpack(metric: AnyContractCallMetric) -> List[AnyContractCallMetric]:
             elif (abi_type := member.abi["type"]) in EXPORTABLE_TYPES:
                 unpacked.append(member)
             elif abi_type == "tuple":
-                logger.info('unable to export struct member %s with tuple return type abi %s', derived_metric, abi_type, abi)
+                logger.info('unable to export struct member %s with tuple return type abi %s', derived_metric, abi)
             elif abi_type not in UNEXPORTABLE_TYPES:
                 logger.info('unable to export tuple member %s with abi %s', member, member.abi)
     else:
