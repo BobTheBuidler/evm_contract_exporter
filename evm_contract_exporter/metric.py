@@ -265,8 +265,13 @@ class ContractCallDerivedMetric(_ContractCallMetricBase):
     @cached_property
     def address(self) -> types.address:
         return self._call.address
+    @cached_property
+    def _returns_array_type(self) -> bool:
+        return self.abi['type'].endswith('[]')
     @property
     def _output_type(self) -> Type:
+        if self._returns_array_type:
+            return list
         try:
             return types.lookup(self.abi['type'])
         except _exceptions.FixMe:

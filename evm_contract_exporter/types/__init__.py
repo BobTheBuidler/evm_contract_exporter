@@ -67,7 +67,6 @@ EXPORTABLE_TYPES: Dict[str, Type] = {
     "uint216": uint216,
     "uint224": uint224,
     "uint256": uint256,
-    "tuple": tuple,
 }
 
 UNEXPORTABLE_TYPES: Dict[str, Type] = {
