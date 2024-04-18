@@ -29,14 +29,12 @@ class _ContractMetricProcessorBase(_TimeSeriesProcessorBase):
         sync: bool = True,
     ) -> None:
         if not isinstance(chainid, int):
-            raise TypeError(f"`chainid` must be an integer. You passed {semaphore_value}")
+            raise TypeError(f"`chainid` must be an integer. You passed {chainid}")
         if not len({field.address for field in query.metrics}) == 1:
             raise ValueError("all metrics must share an address")
-        if concurrency is not None and not isinstance(concurrency, int):
-            raise TypeError(f"`semaphore_value` must be int or None. You passed {concurrency}")
-        _TimeSeriesProcessorBase.__init__(self, query, sync=sync)
+        _TimeSeriesProcessorBase.__init__(self, query, concurrency=concurrency, sync=sync)
         self.chainid = chainid
-        self.concurrency = concurrency
+        #self._queue = a_sync.ProcessingQueue(self._produce, self.concurrency)
     def __repr__(self) -> str:
         return f"<{type(self).__name__} for {self.query}>"
     @cached_property
@@ -54,14 +52,11 @@ class _ContractMetricProcessorBase(_TimeSeriesProcessorBase):
         start_timestamp = rounded_down + self.query.interval
         logger.debug("rounded %s to %s (interval %s)", deploy_timestamp, start_timestamp, self.query.interval)
         return start_timestamp
+    """
     async def produce(self, timestamp: datetime) -> Dict[Metric, Decimal]:
         # NOTE: we fetch this before we enter the semaphore to ensure its cached in memory when we need to use it and we dont block unnecessarily
         await utils.get_block_at_timestamp(timestamp)
-        if semaphore := self._semaphore: 
-            async with semaphore[0 - timestamp.timestamp()]:
-                return await self._produce(timestamp)
-        else:
-            return await self._produce(timestamp)
+        return await self._queue(timestamp)
     async def _produce(self, timestamp: datetime) -> Dict[Metric, Decimal]:
         block = await get_block_at_timestamp(timestamp)
         logger.debug("%s producing %s block %s", self, timestamp, block)
@@ -69,6 +64,7 @@ class _ContractMetricProcessorBase(_TimeSeriesProcessorBase):
         retval = await self.query[timestamp]
         logger.debug("%s produced %s at %s block %s", self, retval, timestamp, block)
         return retval
+    """
     async def _earliest_deploy_block(self) -> int:
         await self._load_deploy_blocks_to_memory()
         return min(await asyncio.gather(*[contract_creation_block_async(field.address) for field in self.query.metrics]))
