@@ -268,6 +268,18 @@ class ContractCallDerivedMetric(_ContractCallMetricBase):
     @cached_property
     def _returns_array_type(self) -> bool:
         return self.abi['type'].endswith('[]')
+    @cached_property
+    def _returns_struct_type(self) -> bool:
+        if self._returns_array_type:
+            return False
+        if 'internalType' in self.abi:
+            return all([
+                self.abi['type'] != "tuple",
+                self.abi['internalType'].startswith('struct '),
+                components := self.abi.get('components', []),
+                all(c['name'] for c in components),
+            ])
+        return len(self.abi) > 1 and all(o['name'] for o in self._outputs)
     @property
     def _output_type(self) -> Type:
         if self._returns_array_type:
