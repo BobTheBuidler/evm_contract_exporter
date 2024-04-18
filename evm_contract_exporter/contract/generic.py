@@ -194,9 +194,9 @@ def unpack(metric: AnyContractCallMetric) -> List[AnyContractCallMetric]:
             elif abi_type in EXPORTABLE_TYPES:
                 unpacked.append(derived_metric)
             elif abi_type == "tuple":
-                logger.warning("unable to export struct member Contract('%s').%s with tuple return type abi %s", derived_metric, abi)
+                logger.warning("unable to export struct member Contract('%s').%s with tuple return type abi %s", derived_metric, derived_metric.key, abi)
             elif abi_type not in UNEXPORTABLE_TYPES:
-                logger.warning("unable to export struct member Contract('%s').%s return type %s", derived_metric, abi_type)
+                logger.warning("unable to export struct member Contract('%s').%s return type %s", derived_metric, derived_metric.key, abi_type)
     elif timeseries.metric._returns_tuple_type:
         member: TupleDerivedMetric
         for member in (timeseries.metric[i] for i in range(len(timeseries.metric._outputs))):
