@@ -37,19 +37,11 @@ class _ContractMetricExporterBase(_ContractMetricProcessorBase, TimeSeriesExport
     async def data_exists(self, ts: datetime) -> List[bool]:  # type: ignore [override]
         return await asyncio.gather(*[self.datastore.data_exists(field.address, field.key, ts) for field in self.query.metrics])
 
-    async def ensure_data(self, ts: datetime) -> None:
-        exists = await self.data_exists(ts, sync=False)
-        if all(exists):
+    async def _ensure_data(self, ts: datetime) -> None:
+        data_exists = await self.data_exists(ts, sync=False)
+        if all(data_exists):
             logger.debug('complete data for %s at %s already exists in datastore', self, ts)
-            return
-        if semaphore := self._semaphore:
-            async with semaphore[0-ts.timestamp()]:
-                await self._ensure_data(ts, exists)
-        else:
-            await self._ensure_data(ts, exists)
-    
-    async def _ensure_data(self, ts: datetime, data_exists: List[bool]) -> None:
-        if any(data_exists):
+        elif any(data_exists):
             coros: Dict[Metric, Coroutine[Any, Any, Decimal]] = {field: field.produce(ts, sync=False) for field, field_exists in zip(self.query.metrics, data_exists) if not field_exists}
             data: AsyncIterable[Tuple[Metric, Union[Decimal, Exception]]] = a_sync.as_completed(coros, return_exceptions=True, aiter=True)
         else:

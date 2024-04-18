@@ -36,9 +36,8 @@ class GenericContractExporter(ContractExporterBase):
         concurrency: Optional[int] = 100,
         sync: bool = True
     ) -> None:
-        super().__init__(chain.id, interval=interval, buffer=buffer, datastore=datastore, sync=sync)
+        super().__init__(chain.id, interval=interval, buffer=buffer, datastore=datastore, concurrency=concurrency, sync=sync)
         self.address = convert.to_address(contract)
-        self.concurrency = concurrency
     def __repr__(self) -> str:
         return f"<{self.__class__.__name__} contract={self.address} interval={self.interval}>"
     @cached_property

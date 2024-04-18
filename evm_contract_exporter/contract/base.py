@@ -21,6 +21,7 @@ class ContractExporterBase(a_sync.ASyncGenericBase):
         *, 
         interval: timedelta = timedelta(days=1), 
         buffer: Optional[timedelta] = None,
+        concurrency: Optional[int] = None,
         datastore: Optional[GenericContractTimeSeriesKeyValueStore] = None,
         sync: bool = True,
     ) -> None:
@@ -29,6 +30,7 @@ class ContractExporterBase(a_sync.ASyncGenericBase):
         if buffer:
             raise NotImplementedError('buffer')
         self.buffer = buffer
+        self.concurrency = concurrency
         self.datastore = datastore or GenericContractTimeSeriesKeyValueStore.get_for_chain(chainid)
         self.sync = sync
     def __await__(self):
