@@ -1,3 +1,3 @@
-ez-a-sync>=0.19.1,<0.20
+ez-a-sync>=0.19.4,<0.20
 generic_exporters>=0.0.6,<0.1
 ypricemagic>=3.2.1,<4

@@ -33,6 +33,8 @@ class _ContractMetricExporterBase(_ContractMetricProcessorBase, TimeSeriesExport
             raise TypeError(f"`datastore` must be an instance of `GenericContractTimeSeriesKeyValueStore`, you passed {datastore}")
         _ContractMetricProcessorBase.__init__(self, chainid, query_plan, concurrency=concurrency, sync=sync)
         self.datastore = datastore or GenericContractTimeSeriesKeyValueStore.get_for_chain(chainid)
+        self.ensure_data = a_sync.ProcessingQueue(self._ensure_data, concurrency, return_data=False)
+        self._push = a_sync.ProcessingQueue(self.datastore.push, self.concurrency*10, return_data=False)
     
     async def data_exists(self, ts: datetime) -> List[bool]:  # type: ignore [override]
         return await asyncio.gather(*[self.datastore.data_exists(field.address, field.key, ts) for field in self.query.metrics])
@@ -41,11 +43,12 @@ class _ContractMetricExporterBase(_ContractMetricProcessorBase, TimeSeriesExport
         data_exists = await self.data_exists(ts, sync=False)
         if all(data_exists):
             logger.debug('complete data for %s at %s already exists in datastore', self, ts)
+            return
         elif any(data_exists):
             coros: Dict[Metric, Coroutine[Any, Any, Decimal]] = {field: field.produce(ts, sync=False) for field, field_exists in zip(self.query.metrics, data_exists) if not field_exists}
             data: AsyncIterable[Tuple[Metric, Union[Decimal, Exception]]] = a_sync.as_completed(coros, return_exceptions=True, aiter=True)
         else:
-            logger.debug('no data exists for %s, exporting...', self)
+            logger.debug('no data exists for %s at %s, exporting...', self, ts)
             tasks = self.query[ts].tasks
             # make sure the tasks are all created
             await tasks._init_loader
@@ -58,6 +61,4 @@ class _ContractMetricExporterBase(_ContractMetricProcessorBase, TimeSeriesExport
             if result is None:
                 # TODO: backport None support
                 continue
-            insert_tasks[metric] = asyncio.create_task(self.datastore.push(metric.address, metric.key, ts, result))
-        insert_results = await a_sync.gather(insert_tasks, return_exceptions=True)
-        raise_if_exception_in(insert_results.values())
+            self._push(metric.address, metric.key, ts, result)
