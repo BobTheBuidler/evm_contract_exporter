@@ -209,7 +209,7 @@ def unpack(metric: AnyContractCallMetric) -> List[AnyContractCallMetric]:
             elif abi_type == "tuple":
                 logger.warning("unable to export tuple member Contract('%s').%s with tuple return type abi %s", member.address, member.key, abi)
             elif abi_type not in UNEXPORTABLE_TYPES:
-                logger.warning("unable to export tuple member Contract('%s').%s with abi %s", member, member.key member.abi)
+                logger.warning("unable to export tuple member Contract('%s').%s with abi %s", member, member.key, member.abi)
     else:
         unpacked.append(timeseries.metric)
     return unpacked
