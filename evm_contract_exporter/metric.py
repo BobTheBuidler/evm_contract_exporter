@@ -208,6 +208,9 @@ class ContractCallMetric(ContractCall, _ContractCallMetricBase):
     def _should_wrap_output(self) -> bool:
         return not isinstance(self._output_type, (TUPLE_TYPE, ARRAY_TYPE))
     @cached_property
+    def _returns_array_type(self) -> bool:
+        return len(self._outputs) == 1 and self._outputs[0]["type"].endswith("[]")
+    @cached_property
     def _returns_tuple_type(self) -> bool:
         return len(self._outputs) > 1 and all(not o["name"] for o in self._outputs)
     @cached_property
@@ -226,16 +229,11 @@ class ContractCallMetric(ContractCall, _ContractCallMetricBase):
         return len_outputs > 1 and all(o['name'] for o in self._outputs)
     @cached_property
     def _returns_array_of_structs(self) -> bool:
-        len_outputs = len(self._outputs)
-        if len_outputs != 1:
-            return False
         output = self._outputs[0]
         if 'internalType' not in output:
             return False
-        internal_type: str = output['internalType']
         return all([
-            internal_type.startswith('struct '),
-            "[]" in internal_type,
+            output.get('internalType', '').startswith('struct '),
             components := output.get('components', []),
             all(c['name'] for c in components),
         ])

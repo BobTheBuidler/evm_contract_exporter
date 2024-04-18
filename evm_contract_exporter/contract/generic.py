@@ -177,7 +177,9 @@ def unpack(metric: AnyContractCallMetric) -> List[AnyContractCallMetric]:
     """
     timeseries = _wrap_method(metric, True)
     unpacked = []
-    if timeseries.metric._returns_tuple_type:
+    if timeseries.metric._returns_array_type:
+        logger.info('unable to export array type member %s', member)
+    elif timeseries.metric._returns_tuple_type:
         member: TupleDerivedMetric
         for member in (timeseries.metric[i] for i in range(len(timeseries.metric._outputs))):
             if member.abi["type"] in EXPORTABLE_TYPES:
