@@ -35,7 +35,6 @@ class _ContractMetricExporterBase(_ContractMetricProcessorBase, TimeSeriesExport
         self.datastore = datastore or GenericContractTimeSeriesKeyValueStore.get_for_chain(chainid)
         self.ensure_data = a_sync.ProcessingQueue(self._ensure_data, num_workers=concurrency, return_data=False)
         self._exists_queue = a_sync.ProcessingQueue(self._data_exists, num_workers=10 if concurrency is None else max(concurrency//5, 10))
-        self._push = a_sync.ProcessingQueue(self.datastore.push, self.concurrency*10, return_data=False)
     
     async def data_exists(self, ts: datetime) -> List[bool]:  # type: ignore [override]
         return await self._exists_queue(ts)
@@ -65,4 +64,4 @@ class _ContractMetricExporterBase(_ContractMetricProcessorBase, TimeSeriesExport
             if result is None:
                 # TODO: backport None support
                 continue
-            self._push(metric.address, metric.key, ts, result)
+            self.datastore.push(metric.address, metric.key, ts, result)

@@ -87,6 +87,7 @@ class GenericContractTimeSeriesKeyValueStore(TimeSeriesDataStoreBase):
                     await asyncio.gather(cls.bulk_insert(items[:midpoint]), cls.bulk_insert(items[midpoint:]))
         
         self.BulkInsertItem = BulkInsertItem
+        self._queue = a_sync.ProcessingQueue(self._push, num_workers=10_000, return_data=False)
     
     def __repr__(self) -> str:
         return f"<{self.__class__.__name__} chainid={self.chainid}>"
@@ -100,7 +101,10 @@ class GenericContractTimeSeriesKeyValueStore(TimeSeriesDataStoreBase):
         logger.debug('%s %s %s %s does not exist', self.chainid, address, key, ts)
         return False
     
-    async def push(self, address: types.address, key: Any, ts: datetime, value: "ReturnValue", metric: Optional[Metric] = None) -> None:
+    def push(self, *args, **kwargs) -> None:
+        self._queue(*args, **kwargs)
+
+    async def _push(self, address: types.address, key: Any, ts: datetime, value: "ReturnValue", metric: Optional[Metric] = None) -> None:
         """Exports `data` to Victoria Metrics using `key` somehow. lol"""
         # NOTE: we know by this point in the code execution, the block is already in memory and don't need to use our helper util
         block = await get_block_at_timestamp(ts)
