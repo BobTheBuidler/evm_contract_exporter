@@ -78,7 +78,7 @@ def unpack(metric: AnyContractCallMetric) -> List[AnyContractCallMetric]:
     timeseries = _wrap_method(metric, True)
     unpacked = []
     if timeseries.metric._returns_array_type:
-        logger.warning('unable to export array type: %s', timeseries.metric)
+        logger.warning('unable to export Contract("%s").%s with dynamic array return type', timeseries.metric.address, timeseries.metric.key)
     elif timeseries.metric._returns_struct_type:
         outputs = timeseries.metric._outputs
         if len(outputs) == 1:
