@@ -296,6 +296,9 @@ class ContractCallDerivedMetric(_ContractCallMetricBase):
     def abi(self) -> dict:...
     @abstractmethod
     def _extract(self, response_data) -> Any:...
+    @property
+    def _outputs(self) -> List[dict]:
+        return self.abi['components']
 
 
 class TupleDerivedMetric(ContractCallDerivedMetric):
