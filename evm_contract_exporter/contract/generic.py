@@ -181,12 +181,14 @@ def unpack(metric: AnyContractCallMetric) -> List[AnyContractCallMetric]:
     elif timeseries.metric._returns_tuple_type:
         member: TupleDerivedMetric
         for member in (timeseries.metric[i] for i in range(len(timeseries.metric._outputs))):
-            if member.abi["type"] in EXPORTABLE_TYPES:
+            if member._returns_array_type:
+                logger.info("unable to export tuple member Contract('%s').%s with abi %s", member.address, member.key, member.abi)
+            elif (abi_type := member.abi["type"]) in EXPORTABLE_TYPES:
                 unpacked.append(member)
-            elif member.abi["type"] == "tuple":
+            elif abi_type == "tuple":
                 unpacked.extend(unpack(member))
-            elif member.abi["type"] not in UNEXPORTABLE_TYPES:
-                logger.info('unable to export tuple member %s', member)
+            elif abi_type not in UNEXPORTABLE_TYPES:
+                logger.info('unable to export tuple member %s with abi %s', member, member.abi)
     elif timeseries.metric._returns_struct_type:
         outputs = timeseries.metric._outputs
         if len(outputs) == 1:
@@ -196,7 +198,9 @@ def unpack(metric: AnyContractCallMetric) -> List[AnyContractCallMetric]:
             struct_key = abi['name']
             derived_metric: StructDerivedMetric = timeseries.metric[struct_key]
             type_str: str = abi["type"]
-            if type_str in EXPORTABLE_TYPES:
+            if derived_metric._returns_array_type:
+                logger.info("unable to export struct member Contract('%s').%s with abi %s", derived_metric.address, derived_metric.key, derived_metric.abi)
+            elif type_str in EXPORTABLE_TYPES:
                 unpacked.append(derived_metric)
             elif type_str == "tuple":
                 unpacked.extend(unpack(derived_metric))
