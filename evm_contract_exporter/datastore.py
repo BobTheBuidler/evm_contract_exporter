@@ -31,7 +31,7 @@ logger = logging.getLogger(__name__)
 
 class GenericContractTimeSeriesKeyValueStore(TimeSeriesDataStoreBase):
     _columns = "address_chainid", "address_address", "metric", "timestamp", "blockno", "value"
-
+    push = None  # TODO refactor this in the abc
     @classmethod
     @lru_cache(maxsize=None)
     def get_for_chain(cls, chainid: int) -> Self:
@@ -87,6 +87,7 @@ class GenericContractTimeSeriesKeyValueStore(TimeSeriesDataStoreBase):
                     await asyncio.gather(cls.bulk_insert(items[:midpoint]), cls.bulk_insert(items[midpoint:]))
         
         self.BulkInsertItem = BulkInsertItem
+        self.push = a_sync.ProcessingQueue(self._push, num_workers=10_000, return_data=False)
     
     def __repr__(self) -> str:
         return f"<{self.__class__.__name__} chainid={self.chainid}>"
@@ -99,8 +100,8 @@ class GenericContractTimeSeriesKeyValueStore(TimeSeriesDataStoreBase):
             return True
         logger.debug('%s %s %s %s does not exist', self.chainid, address, key, ts)
         return False
-    
-    async def push(self, address: types.address, key: Any, ts: datetime, value: "ReturnValue", metric: Optional[Metric] = None) -> None:
+
+    async def _push(self, address: types.address, key: Any, ts: datetime, value: "ReturnValue", metric: Optional[Metric] = None) -> None:
         """Exports `data` to Victoria Metrics using `key` somehow. lol"""
         # NOTE: we know by this point in the code execution, the block is already in memory and don't need to use our helper util
         block = await get_block_at_timestamp(ts)
