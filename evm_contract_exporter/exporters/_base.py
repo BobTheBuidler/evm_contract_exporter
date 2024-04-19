@@ -32,8 +32,9 @@ class _ContractMetricExporterBase(_ContractMetricProcessorBase, TimeSeriesExport
         if datastore is not None and not isinstance(datastore, GenericContractTimeSeriesKeyValueStore):
             raise TypeError(f"`datastore` must be an instance of `GenericContractTimeSeriesKeyValueStore`, you passed {datastore}")
         _ContractMetricProcessorBase.__init__(self, chainid, query_plan, concurrency=concurrency, sync=sync)
+        TimeSeriesExporter
         self.datastore = datastore or GenericContractTimeSeriesKeyValueStore.get_for_chain(chainid)
-        self._exists_queue = a_sync.ProcessingQueue(self._data_exists, num_workers=10 if concurrency is None else max(concurrency//5, 10))
+        self.ensure_data = a_sync.ProcessingQueue(self._ensure_data, concurrency, return_data=False)
     
     async def data_exists(self, ts: datetime) -> List[bool]:  # type: ignore [override]
         return await asyncio.gather(*[self.datastore.data_exists(field.address, field.key, ts) for field in self.query.metrics])
@@ -52,7 +53,6 @@ class _ContractMetricExporterBase(_ContractMetricProcessorBase, TimeSeriesExport
             # make sure the tasks are all created
             await tasks._init_loader
             data = a_sync.as_completed(tasks, return_exceptions=True, aiter=True)
-        insert_tasks = {}
         async for metric, result in data:
             if isinstance(result, ReturnValue):
                 # TODO: find where these are comign from and stop them earlier
