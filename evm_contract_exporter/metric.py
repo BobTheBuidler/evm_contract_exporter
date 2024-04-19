@@ -238,7 +238,8 @@ class ContractCallMetric(ContractCall, _ContractCallMetricBase):
             all(c['name'] for c in components),
         ])
 
-    
+import a_sync
+a_sync.ProcessingQueue
 
 
 class ContractCallDerivedMetric(_ContractCallMetricBase):
