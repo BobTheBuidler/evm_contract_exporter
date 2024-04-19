@@ -33,10 +33,14 @@ class _ContractMetricExporterBase(_ContractMetricProcessorBase, TimeSeriesExport
             raise TypeError(f"`datastore` must be an instance of `GenericContractTimeSeriesKeyValueStore`, you passed {datastore}")
         _ContractMetricProcessorBase.__init__(self, chainid, query_plan, concurrency=concurrency, sync=sync)
         self.datastore = datastore or GenericContractTimeSeriesKeyValueStore.get_for_chain(chainid)
-        self.ensure_data = a_sync.ProcessingQueue(self._ensure_data, concurrency, return_data=False)
+        self.ensure_data = a_sync.ProcessingQueue(self._ensure_data, num_workers=concurrency, return_data=False)
+        self._exists_queue = a_sync.ProcessingQueue(self._data_exists, num_workers=10 if concurrency is None else max(concurrency//5, 10))
         self._push = a_sync.ProcessingQueue(self.datastore.push, self.concurrency*10, return_data=False)
     
     async def data_exists(self, ts: datetime) -> List[bool]:  # type: ignore [override]
+        return await self._exists_queue(ts)
+    
+    async def _data_exists(self, ts: datetime) -> List[bool]:  # type: ignore [override]
         return await asyncio.gather(*[self.datastore.data_exists(field.address, field.key, ts) for field in self.query.metrics])
 
     async def _ensure_data(self, ts: datetime) -> None:
