@@ -298,7 +298,10 @@ class ContractCallDerivedMetric(_ContractCallMetricBase):
     def _extract(self, response_data) -> Any:...
     @property
     def _outputs(self) -> List[dict]:
-        return self.abi['components']
+        try:
+            return self.abi['components']
+        except KeyError as e:
+            raise KeyError(str(e), self.abi) from None
 
 
 class TupleDerivedMetric(ContractCallDerivedMetric):
