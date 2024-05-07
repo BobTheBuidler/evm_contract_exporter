@@ -11,6 +11,7 @@ Subpackages
    evm_contract_exporter.db
    evm_contract_exporter.examples
    evm_contract_exporter.exporters
+   evm_contract_exporter.generic
    evm_contract_exporter.processors
    evm_contract_exporter.types
 

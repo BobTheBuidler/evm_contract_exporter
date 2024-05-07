@@ -12,14 +12,6 @@ evm\_contract\_exporter.contract.base module
    :undoc-members:
    :show-inheritance:
 
-evm\_contract\_exporter.contract.generic module
------------------------------------------------
-
-.. automodule:: evm_contract_exporter.contract.generic
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 Module contents
 ---------------
 
