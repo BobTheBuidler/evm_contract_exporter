@@ -1,7 +1,6 @@
 
 import asyncio
 import logging
-import numbers
 from brownie import chain
 from brownie.convert.datatypes import ReturnValue
 from collections import defaultdict
@@ -105,7 +104,7 @@ class GenericContractTimeSeriesKeyValueStore(TimeSeriesDataStoreBase):
 
     async def _push(self, address: types.address, key: Any, ts: datetime, value: "ReturnValue", metric: Optional[Metric] = None) -> None:
         """Exports `data` to Victoria Metrics using `key` somehow. lol"""
-        if isinstance(value, numbers.Real) and value >= MAX_VALUE:
+        if isinstance(value, Decimal) and value >= MAX_VALUE:
             logger.warning("%s.%s at %s: %s exceeds max value for db", address, key, datetime, value)
             return
         # NOTE: we know by this point in the code execution, the block is already in memory and don't need to use our helper util
