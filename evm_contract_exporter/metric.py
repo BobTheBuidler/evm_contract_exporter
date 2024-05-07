@@ -238,7 +238,8 @@ class ContractCallMetric(ContractCall, _ContractCallMetricBase):
             all(c['name'] for c in components),
         ])
 
-    
+import a_sync
+a_sync.ProcessingQueue
 
 
 class ContractCallDerivedMetric(_ContractCallMetricBase):
@@ -295,6 +296,12 @@ class ContractCallDerivedMetric(_ContractCallMetricBase):
     def abi(self) -> dict:...
     @abstractmethod
     def _extract(self, response_data) -> Any:...
+    @property
+    def _outputs(self) -> List[dict]:
+        try:
+            return self.abi['components']
+        except KeyError as e:
+            raise KeyError(str(e), self.abi) from None
 
 
 class TupleDerivedMetric(ContractCallDerivedMetric):
