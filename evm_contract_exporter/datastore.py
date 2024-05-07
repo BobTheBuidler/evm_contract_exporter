@@ -1,6 +1,7 @@
 
 import asyncio
 import logging
+import numbers
 from brownie import chain
 from brownie.convert.datatypes import ReturnValue
 from collections import defaultdict
@@ -26,6 +27,7 @@ from y.prices.dex.uniswap.v2 import UniswapV2Pool
 from evm_contract_exporter import _exceptions, db, types
 from evm_contract_exporter._exceptions import FixMe
 
+MAX_VALUE = 10 ** 20
 
 logger = logging.getLogger(__name__)
 
@@ -103,6 +105,9 @@ class GenericContractTimeSeriesKeyValueStore(TimeSeriesDataStoreBase):
 
     async def _push(self, address: types.address, key: Any, ts: datetime, value: "ReturnValue", metric: Optional[Metric] = None) -> None:
         """Exports `data` to Victoria Metrics using `key` somehow. lol"""
+        if isinstance(value, numbers.Real) and value >= MAX_VALUE:
+            logger.warning("%s.%s at %s: %s exceeds max value for db", address, key, datetime, value)
+            return
         # NOTE: we know by this point in the code execution, the block is already in memory and don't need to use our helper util
         block = await get_block_at_timestamp(ts)
         if isinstance(value, Exception):
