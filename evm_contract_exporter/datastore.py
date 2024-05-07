@@ -105,7 +105,7 @@ class GenericContractTimeSeriesKeyValueStore(TimeSeriesDataStoreBase):
     async def _push(self, address: types.address, key: Any, ts: datetime, value: "ReturnValue", metric: Optional[Metric] = None) -> None:
         """Exports `data` to Victoria Metrics using `key` somehow. lol"""
         if isinstance(value, Decimal) and value >= MAX_VALUE:
-            logger.warning("%s.%s at %s: %s exceeds max value for db", address, key, datetime, value)
+            logger.warning("%s.%s at %s: %s exceeds max value for db", address, key, ts, value)
             return
         # NOTE: we know by this point in the code execution, the block is already in memory and don't need to use our helper util
         block = await get_block_at_timestamp(ts)
