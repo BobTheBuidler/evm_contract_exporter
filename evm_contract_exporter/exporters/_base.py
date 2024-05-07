@@ -34,7 +34,7 @@ class _ContractMetricExporterBase(_ContractMetricProcessorBase, TimeSeriesExport
         _ContractMetricProcessorBase.__init__(self, chainid, query_plan, concurrency=concurrency, sync=sync)
         TimeSeriesExporter
         self.datastore = datastore or GenericContractTimeSeriesKeyValueStore.get_for_chain(chainid)
-        self.ensure_data = a_sync.ProcessingQueue(self._ensure_data, concurrency, return_data=False)
+        self.ensure_data = a_sync.ProcessingQueue(self._ensure_data, concurrency or 10_000, return_data=False)
     
     async def data_exists(self, ts: datetime) -> List[bool]:  # type: ignore [override]
         return await asyncio.gather(*[self.datastore.data_exists(field.address, field.key, ts) for field in self.query.metrics])
