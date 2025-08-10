@@ -5,7 +5,7 @@ networks:
 
 services:
   grafana:
-    image: grafana/grafana:10.4.19
+    image: grafana/grafana:12.1.0
     ports:
       - ${GF_PORT:-3000}:3000
     environment:
