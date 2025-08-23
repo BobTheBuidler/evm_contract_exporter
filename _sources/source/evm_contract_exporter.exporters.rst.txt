@@ -9,21 +9,21 @@ evm\_contract\_exporter.exporters.method module
 
 .. automodule:: evm_contract_exporter.exporters.method
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:
 
 evm\_contract\_exporter.exporters.metric module
 -----------------------------------------------
 
 .. automodule:: evm_contract_exporter.exporters.metric
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:
 
 Module contents
 ---------------
 
 .. automodule:: evm_contract_exporter.exporters
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:

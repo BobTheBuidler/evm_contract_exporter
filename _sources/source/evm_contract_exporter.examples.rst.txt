@@ -9,13 +9,13 @@ evm\_contract\_exporter.examples.price module
 
 .. automodule:: evm_contract_exporter.examples.price
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:
 
 Module contents
 ---------------
 
 .. automodule:: evm_contract_exporter.examples
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:

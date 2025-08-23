@@ -23,61 +23,61 @@ evm\_contract\_exporter.ENVIRONMENT\_VARIABLES module
 
 .. automodule:: evm_contract_exporter.ENVIRONMENT_VARIABLES
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:
 
 evm\_contract\_exporter.datastore module
 ----------------------------------------
 
 .. automodule:: evm_contract_exporter.datastore
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:
 
 evm\_contract\_exporter.metric module
 -------------------------------------
 
 .. automodule:: evm_contract_exporter.metric
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:
 
 evm\_contract\_exporter.scale module
 ------------------------------------
 
 .. automodule:: evm_contract_exporter.scale
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:
 
 evm\_contract\_exporter.timeseries module
 -----------------------------------------
 
 .. automodule:: evm_contract_exporter.timeseries
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:
 
 evm\_contract\_exporter.tokenlists module
 -----------------------------------------
 
 .. automodule:: evm_contract_exporter.tokenlists
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:
 
 evm\_contract\_exporter.utils module
 ------------------------------------
 
 .. automodule:: evm_contract_exporter.utils
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:
 
 Module contents
 ---------------
 
 .. automodule:: evm_contract_exporter
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:

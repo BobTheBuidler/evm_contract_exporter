@@ -9,21 +9,21 @@ evm\_contract\_exporter.generic.contract module
 
 .. automodule:: evm_contract_exporter.generic.contract
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:
 
 evm\_contract\_exporter.generic.exporter module
 -----------------------------------------------
 
 .. automodule:: evm_contract_exporter.generic.exporter
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:
 
 Module contents
 ---------------
 
 .. automodule:: evm_contract_exporter.generic
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:

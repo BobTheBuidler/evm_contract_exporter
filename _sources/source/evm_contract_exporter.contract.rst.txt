@@ -9,13 +9,13 @@ evm\_contract\_exporter.contract.base module
 
 .. automodule:: evm_contract_exporter.contract.base
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:
 
 Module contents
 ---------------
 
 .. automodule:: evm_contract_exporter.contract
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:
