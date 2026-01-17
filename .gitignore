@@ -1,6 +1,6 @@
 .hypothesis/
 .mypy_cache/
 .pytest_cache/
-.worktrees
 __pycache__/
 env/
+.worktrees/
