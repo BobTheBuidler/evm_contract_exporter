@@ -13,5 +13,7 @@ All agents must follow these rules:
 7) Update dependency lockfiles when adding or removing Python dependencies.
 8) When adding or refactoring async RPC/price-fetching code, keep or add `y._decorators.stuck_coro_debugger` so the `y.stuck?` DEBUG logger continues emitting "still executing" messages at the default 5-minute interval (via `a_sync.debugging.stuck_coro_debugger`).
 9) If you touch ypricemagic-driven price lookups or related docs, keep the `y.stuck?` logger guidance accurate (DEBUG-only, 5-minute interval) so long-running calls can be diagnosed.
+10) Maximize the use of caching in GitHub workflow files to minimize run duration.
+11) Use one of `paths` or `paths-ignore` in every workflow file to make sure workflows only run when required.
 
 Reference: https://www.conventionalcommits.org/en/v1.0.0/
