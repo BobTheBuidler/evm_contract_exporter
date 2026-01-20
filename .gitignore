@@ -4,4 +4,3 @@
 .worktrees
 __pycache__/
 env/
-.worktrees/
