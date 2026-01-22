@@ -1,0 +1,16 @@
+name: Commitlint
+
+on:
+  pull_request:
+
+jobs:
+  commits:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Run commitlint
+        uses: wagoid/commitlint-github-action@v2
