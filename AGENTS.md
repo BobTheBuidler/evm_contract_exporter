@@ -10,5 +10,6 @@ All agents must follow these rules:
 4) If the branch you're assigned to work on is from a remote (ie origin/master or upstream/awesome-feature) you must ensure you fetch and pull from the remote before you begin your work.
 5) Use one of `paths` or `paths-ignore` in every workflow file to make sure workflows only run when required.
 6) Maximize the use of caching in GitHub workflow files to minimize run duration.
+7) Commit messages must follow the same Conventional Commits-style prefixes and include a short functional description plus a user-facing value proposition.
 
 Reference: https://www.conventionalcommits.org/en/v1.0.0/
