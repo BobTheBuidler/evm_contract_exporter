@@ -4,6 +4,14 @@ on:
   push:
     branches:
       - master
+    paths:
+      - .github/workflows/deploy-docs.yaml
+      - docs/**
+      - evm_contract_exporter/**
+      - requirements.txt
+      - setup.py
+      - Makefile
+      - README.md
 
 # Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
 permissions:
