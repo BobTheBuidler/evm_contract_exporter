@@ -1,0 +1,7 @@
+# Generic export: auto-discover exportable view methods.
+version: "0.1"
+network: "mainnet"
+contract: "0x0000000000000000000000000000000000000000"
+mode: "generic"
+interval: "1d"
+concurrency: 100

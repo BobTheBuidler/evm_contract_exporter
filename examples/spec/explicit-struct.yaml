@@ -1,0 +1,9 @@
+# Explicit export: struct field example (e.g., Uniswap V3 slot0).
+version: "0.1"
+network: "mainnet"
+contract: "0x0000000000000000000000000000000000000000"
+mode: "explicit"
+interval: "15m"
+metrics:
+  - method: "slot0"
+    field: "sqrtPriceX96"
