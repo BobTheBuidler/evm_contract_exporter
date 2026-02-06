@@ -1,7 +1,7 @@
 
 from decimal import Decimal
 
-from tests.evm_contract_exporter.fixtures import *
+from tests.fixtures import scale, weth_smart_scale
 
 test_val = Decimal(10 ** 18)
 
