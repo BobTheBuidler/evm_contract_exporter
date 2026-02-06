@@ -50,6 +50,22 @@ evm\_contract\_exporter.scale module
    :show-inheritance:
    :undoc-members:
 
+evm\_contract\_exporter.spec module
+-----------------------------------
+
+.. automodule:: evm_contract_exporter.spec
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+evm\_contract\_exporter.spec\_runner module
+-------------------------------------------
+
+.. automodule:: evm_contract_exporter.spec_runner
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
 evm\_contract\_exporter.timeseries module
 -----------------------------------------
 
